@@ -2105,7 +2105,7 @@ if kod_program_col is not None:
         "Pilih Kod Program",
         df_paparan["KOD_PROGRAM_SHORT"].dropna().unique(),
         "filter_kod_program",
-        n_cols=4,
+        n_cols=3,
         use_expander=True,
         expanded=False
     )
