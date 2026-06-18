@@ -2545,6 +2545,9 @@ with main_left:
 
         if st.button(f"{hijau}", key="btn_hijau_value"):
             st.session_state.selected_traffic = "Hijau"
+            if "selected_chart_bahagian" in st.session_state:
+                st.session_state.selected_chart_bahagian = None
+            st.rerun()
 
     with c2:
         st.markdown(
@@ -2558,6 +2561,9 @@ with main_left:
 
         if st.button(f"{kuning}", key="btn_kuning_value"):
             st.session_state.selected_traffic = "Kuning"
+            if "selected_chart_bahagian" in st.session_state:
+                st.session_state.selected_chart_bahagian = None
+            st.rerun()
 
     with c3:
         st.markdown(
@@ -2571,6 +2577,9 @@ with main_left:
 
         if st.button(f"{merah}", key="btn_merah_value"):
             st.session_state.selected_traffic = "Merah"
+            if "selected_chart_bahagian" in st.session_state:
+                st.session_state.selected_chart_bahagian = None
+            st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -2585,6 +2594,9 @@ with main_left:
         with q2_value:
             if st.button(str(bermula_q2), key="btn_q2_status"):
                 st.session_state.selected_traffic = "Q2"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
 
     with q_sep1:
         st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
@@ -2596,6 +2608,9 @@ with main_left:
         with q3_value:
             if st.button(str(bermula_q3), key="btn_q3_status"):
                 st.session_state.selected_traffic = "Q3"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
 
     with q_sep2:
         st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
@@ -2607,6 +2622,9 @@ with main_left:
         with q4_value:
             if st.button(str(bermula_q4), key="btn_q4_status"):
                 st.session_state.selected_traffic = "Q4"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
 
     with q_sep3:
         st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
@@ -2618,6 +2636,9 @@ with main_left:
         with tidak_value:
             if st.button(str(tidak_dilaksanakan), key="btn_tidak_status"):
                 st.session_state.selected_traffic = "Tidak Dilaksanakan"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -2628,6 +2649,9 @@ with main_right:
 
     if st.button(f"{jumlah_program_panel:,.0f}", key="btn_jumlah_program"):
         st.session_state.selected_traffic = "Semua"
+        if "selected_chart_bahagian" in st.session_state:
+            st.session_state.selected_chart_bahagian = None
+        st.rerun()
 
     st.markdown(
         f"""
