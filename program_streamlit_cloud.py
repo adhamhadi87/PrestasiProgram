@@ -1441,6 +1441,20 @@ st.markdown(
         padding-top: 8px !important;
     }
 
+
+    /* KOD PROGRAM FILTER - SMALL FONT */
+    section[data-testid="stSidebar"] div[class*="st-key-filter_kod_program"] button {
+        padding: 0.26rem 0.42rem !important;
+        min-height: 30px !important;
+    }
+
+    section[data-testid="stSidebar"] div[class*="st-key-filter_kod_program"] button p {
+        font-size: 10px !important;
+        line-height: 1.05 !important;
+        text-align: center !important;
+        font-weight: 900 !important;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
@@ -1883,6 +1897,38 @@ def build_bahagian_chart(filtered_df, bahagian_col, chart_height=None):
     return fig_bahagian_stack
 
 
+
+def get_chart_source_df(filtered_df):
+    """
+    Carta ikut pilihan Traffic Light.
+    Jika klik nilai Traffic Light, carta bahagian turut ditapis mengikut status tersebut.
+    """
+    selected = st.session_state.get("selected_traffic")
+
+    if selected is None or selected == "Semua":
+        return filtered_df.copy()
+
+    status_map = {
+        "Hijau": "Hijau",
+        "Kuning": "Kuning",
+        "Merah": "Merah",
+        "Q2": "Q2",
+        "Bermula Q2": "Q2",
+        "Q3": "Q3",
+        "Bermula Q3": "Q3",
+        "Q4": "Q4",
+        "Bermula Q4": "Q4",
+        "Tidak Dilaksanakan": "Tidak Dilaksanakan"
+    }
+
+    selected_status = status_map.get(selected)
+
+    if selected_status and "KATEGORI_TRAFFIC" in filtered_df.columns:
+        return filtered_df[filtered_df["KATEGORI_TRAFFIC"] == selected_status].copy()
+
+    return filtered_df.copy()
+
+
 # =====================================================
 # SIDEBAR FILTER ONLY
 # =====================================================
@@ -2105,7 +2151,7 @@ if kod_program_col is not None:
         "Pilih Kod Program",
         df_paparan["KOD_PROGRAM_SHORT"].dropna().unique(),
         "filter_kod_program",
-        n_cols=3,
+        n_cols=4,
         use_expander=True,
         expanded=False
     )
@@ -2285,6 +2331,8 @@ if "fullscreen_chart" not in st.session_state:
 if "fullscreen_list" not in st.session_state:
     st.session_state.fullscreen_list = False
 
+chart_filtered_df = get_chart_source_df(filtered_df)
+
 # =====================================================
 # CUSTOM FULLSCREEN PAGE - CARTA SAHAJA
 # =====================================================
@@ -2332,9 +2380,9 @@ if st.session_state.fullscreen_chart:
             st.rerun()
 
     fig_fullscreen = build_bahagian_chart(
-        filtered_df,
+        chart_filtered_df,
         bahagian_col,
-        chart_height=max(720, filtered_df[bahagian_col].nunique() * 60)
+        chart_height=max(720, chart_filtered_df[bahagian_col].nunique() * 60)
     )
 
     st.plotly_chart(
@@ -2600,7 +2648,7 @@ st.divider()
 # =====================================================
 # ACCORDION 1 - CARTA MENGIKUT BAHAGIAN
 # =====================================================
-with st.expander("📊 PENCAPAIAN MENGIKUT BAHAGIAN", expanded=False):
+with st.expander("📊 PENCAPAIAN MENGIKUT BAHAGIAN", expanded=st.session_state.selected_traffic is not None):
 
     btn_col1, btn_col2 = st.columns([0.78, 0.22])
 
@@ -2609,13 +2657,19 @@ with st.expander("📊 PENCAPAIAN MENGIKUT BAHAGIAN", expanded=False):
             st.session_state.fullscreen_chart = True
             st.rerun()
 
-    fig_bahagian_stack = build_bahagian_chart(filtered_df, bahagian_col)
+    if st.session_state.selected_traffic and st.session_state.selected_traffic != "Semua":
+        st.info(f"Carta sedang ditapis mengikut status: **{st.session_state.selected_traffic}**")
 
-    st.plotly_chart(
-        fig_bahagian_stack,
-        use_container_width=True,
-        config={"displaylogo": False}
-    )
+    if chart_filtered_df.empty:
+        st.warning("Tiada data carta untuk status yang dipilih.")
+    else:
+        fig_bahagian_stack = build_bahagian_chart(chart_filtered_df, bahagian_col)
+
+        st.plotly_chart(
+            fig_bahagian_stack,
+            use_container_width=True,
+            config={"displaylogo": False}
+        )
 
 
 # =====================================================
