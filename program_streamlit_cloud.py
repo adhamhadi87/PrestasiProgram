@@ -2657,9 +2657,6 @@ with st.expander("📊 PENCAPAIAN MENGIKUT BAHAGIAN", expanded=st.session_state.
             st.session_state.fullscreen_chart = True
             st.rerun()
 
-    if st.session_state.selected_traffic and st.session_state.selected_traffic != "Semua":
-        st.info(f"Carta sedang ditapis mengikut status: **{st.session_state.selected_traffic}**")
-
     if chart_filtered_df.empty:
         st.warning("Tiada data carta untuk status yang dipilih.")
     else:
