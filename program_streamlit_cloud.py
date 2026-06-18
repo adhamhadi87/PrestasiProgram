@@ -2,7 +2,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from streamlit_plotly_events import plotly_events
 from pathlib import Path
 import re
 
@@ -2134,9 +2133,6 @@ if st.sidebar.button(
     if "selected_traffic" in st.session_state:
         st.session_state.selected_traffic = None
 
-    if "selected_chart_bahagian" in st.session_state:
-        st.session_state.selected_chart_bahagian = None
-
     if "fullscreen_chart" in st.session_state:
         st.session_state.fullscreen_chart = False
 
@@ -2157,9 +2153,6 @@ if st.sidebar.button(
 
     if "selected_traffic" in st.session_state:
         st.session_state.selected_traffic = None
-
-    if "selected_chart_bahagian" in st.session_state:
-        st.session_state.selected_chart_bahagian = None
 
     if "fullscreen_chart" in st.session_state:
         st.session_state.fullscreen_chart = False
@@ -2286,9 +2279,6 @@ filtered_df["KATEGORI_TRAFFIC"] = filtered_df["TRAFFIC_LIGHT"].replace({
 if "selected_traffic" not in st.session_state:
     st.session_state.selected_traffic = None
 
-if "selected_chart_bahagian" not in st.session_state:
-    st.session_state.selected_chart_bahagian = None
-
 if "fullscreen_chart" not in st.session_state:
     st.session_state.fullscreen_chart = False
 
@@ -2347,28 +2337,11 @@ if st.session_state.fullscreen_chart:
         chart_height=max(720, filtered_df[bahagian_col].nunique() * 60)
     )
 
-    clicked_fullscreen = plotly_events(
+    st.plotly_chart(
         fig_fullscreen,
-        click_event=True,
-        hover_event=False,
-        select_event=False,
-        override_height=max(720, filtered_df[bahagian_col].nunique() * 60),
-        override_width="100%",
-        key="plotly_click_fullscreen_chart"
+        use_container_width=True,
+        config={"displaylogo": False}
     )
-
-    if clicked_fullscreen:
-        clicked_point = clicked_fullscreen[0]
-        clicked_curve = clicked_point.get("curveNumber")
-        clicked_bahagian = clicked_point.get("y")
-
-        if clicked_curve is not None and clicked_bahagian is not None:
-            clicked_status = fig_fullscreen.data[clicked_curve].name
-            st.session_state.selected_traffic = clicked_status
-            st.session_state.selected_chart_bahagian = clicked_bahagian
-            st.session_state.fullscreen_chart = False
-            st.session_state.fullscreen_list = True
-            st.rerun()
 
     st.stop()
 
@@ -2419,19 +2392,10 @@ if st.session_state.fullscreen_list:
             st.rerun()
 
     selected = st.session_state.selected_traffic
-    selected_bahagian_chart = st.session_state.get("selected_chart_bahagian")
-
-    if selected_bahagian_chart:
-        st.info(f"Paparan hasil klik carta: Bahagian **{selected_bahagian_chart}** | Status **{selected}**")
-
-    def apply_chart_bahagian(df_list):
-        if selected_bahagian_chart and bahagian_col in df_list.columns:
-            return df_list[df_list[bahagian_col] == selected_bahagian_chart].copy()
-        return df_list
 
     if selected == "Semua":
         render_selected_list(
-            apply_chart_bahagian(filtered_df),
+            filtered_df,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2441,7 +2405,7 @@ if st.session_state.fullscreen_list:
 
     elif selected == "Hijau":
         render_selected_list(
-            apply_chart_bahagian(df_hijau),
+            df_hijau,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2451,7 +2415,7 @@ if st.session_state.fullscreen_list:
 
     elif selected == "Kuning":
         render_selected_list(
-            apply_chart_bahagian(df_kuning),
+            df_kuning,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2461,7 +2425,7 @@ if st.session_state.fullscreen_list:
 
     elif selected == "Merah":
         render_selected_list(
-            apply_chart_bahagian(df_merah),
+            df_merah,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2471,7 +2435,7 @@ if st.session_state.fullscreen_list:
 
     elif selected in ["Bermula Q2", "Q2"]:
         render_selected_list(
-            apply_chart_bahagian(df_bermula_q2_filtered),
+            df_bermula_q2_filtered,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2481,7 +2445,7 @@ if st.session_state.fullscreen_list:
 
     elif selected in ["Bermula Q3", "Q3"]:
         render_selected_list(
-            apply_chart_bahagian(df_bermula_q3_filtered),
+            df_bermula_q3_filtered,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2491,7 +2455,7 @@ if st.session_state.fullscreen_list:
 
     elif selected in ["Bermula Q4", "Q4"]:
         render_selected_list(
-            apply_chart_bahagian(df_bermula_q4_filtered),
+            df_bermula_q4_filtered,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2501,7 +2465,7 @@ if st.session_state.fullscreen_list:
 
     elif selected == "Tidak Dilaksanakan":
         render_selected_list(
-            apply_chart_bahagian(df_tidak_filtered),
+            df_tidak_filtered,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2533,7 +2497,6 @@ with main_left:
 
         if st.button(f"{hijau}", key="btn_hijau_value"):
             st.session_state.selected_traffic = "Hijau"
-            st.session_state.selected_chart_bahagian = None
 
     with c2:
         st.markdown(
@@ -2547,7 +2510,6 @@ with main_left:
 
         if st.button(f"{kuning}", key="btn_kuning_value"):
             st.session_state.selected_traffic = "Kuning"
-            st.session_state.selected_chart_bahagian = None
 
     with c3:
         st.markdown(
@@ -2561,7 +2523,6 @@ with main_left:
 
         if st.button(f"{merah}", key="btn_merah_value"):
             st.session_state.selected_traffic = "Merah"
-            st.session_state.selected_chart_bahagian = None
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -2576,7 +2537,6 @@ with main_left:
         with q2_value:
             if st.button(str(bermula_q2), key="btn_q2_status"):
                 st.session_state.selected_traffic = "Q2"
-                st.session_state.selected_chart_bahagian = None
 
     with q_sep1:
         st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
@@ -2588,7 +2548,6 @@ with main_left:
         with q3_value:
             if st.button(str(bermula_q3), key="btn_q3_status"):
                 st.session_state.selected_traffic = "Q3"
-                st.session_state.selected_chart_bahagian = None
 
     with q_sep2:
         st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
@@ -2600,7 +2559,6 @@ with main_left:
         with q4_value:
             if st.button(str(bermula_q4), key="btn_q4_status"):
                 st.session_state.selected_traffic = "Q4"
-                st.session_state.selected_chart_bahagian = None
 
     with q_sep3:
         st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
@@ -2612,7 +2570,6 @@ with main_left:
         with tidak_value:
             if st.button(str(tidak_dilaksanakan), key="btn_tidak_status"):
                 st.session_state.selected_traffic = "Tidak Dilaksanakan"
-                st.session_state.selected_chart_bahagian = None
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -2623,7 +2580,6 @@ with main_right:
 
     if st.button(f"{jumlah_program_panel:,.0f}", key="btn_jumlah_program"):
         st.session_state.selected_traffic = "Semua"
-        st.session_state.selected_chart_bahagian = None
 
     st.markdown(
         f"""
@@ -2655,35 +2611,17 @@ with st.expander("📊 PENCAPAIAN MENGIKUT BAHAGIAN", expanded=False):
 
     fig_bahagian_stack = build_bahagian_chart(filtered_df, bahagian_col)
 
-    st.caption("Klik nilai / bahagian dalam bar untuk lihat senarai program bagi status tersebut.")
-
-    clicked_chart = plotly_events(
+    st.plotly_chart(
         fig_bahagian_stack,
-        click_event=True,
-        hover_event=False,
-        select_event=False,
-        override_height=max(520, filtered_df[bahagian_col].nunique() * 42),
-        override_width="100%",
-        key="plotly_click_bahagian_chart"
+        use_container_width=True,
+        config={"displaylogo": False}
     )
-
-    if clicked_chart:
-        clicked_point = clicked_chart[0]
-        clicked_curve = clicked_point.get("curveNumber")
-        clicked_bahagian = clicked_point.get("y")
-
-        if clicked_curve is not None and clicked_bahagian is not None:
-            clicked_status = fig_bahagian_stack.data[clicked_curve].name
-            st.session_state.selected_traffic = clicked_status
-            st.session_state.selected_chart_bahagian = clicked_bahagian
-            st.session_state.fullscreen_list = False
-            st.rerun()
 
 
 # =====================================================
 # ACCORDION 2 - SENARAI APABILA KLIK TRAFFIC LIGHT
 # =====================================================
-with st.expander("📋 SENARAI STATUS PRESTASI", expanded=st.session_state.selected_traffic is not None):
+with st.expander("📋 SENARAI STATUS PRESTASI", expanded=False):
 
     list_btn_col1, list_btn_col2 = st.columns([0.78, 0.22])
 
@@ -2693,19 +2631,10 @@ with st.expander("📋 SENARAI STATUS PRESTASI", expanded=st.session_state.selec
             st.rerun()
 
     selected = st.session_state.selected_traffic
-    selected_bahagian_chart = st.session_state.get("selected_chart_bahagian")
-
-    if selected_bahagian_chart:
-        st.info(f"Paparan hasil klik carta: Bahagian **{selected_bahagian_chart}** | Status **{selected}**")
-
-    def apply_chart_bahagian(df_list):
-        if selected_bahagian_chart and bahagian_col in df_list.columns:
-            return df_list[df_list[bahagian_col] == selected_bahagian_chart].copy()
-        return df_list
 
     if selected == "Semua":
         render_selected_list(
-            apply_chart_bahagian(filtered_df),
+            filtered_df,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2715,7 +2644,7 @@ with st.expander("📋 SENARAI STATUS PRESTASI", expanded=st.session_state.selec
 
     elif selected == "Hijau":
         render_selected_list(
-            apply_chart_bahagian(df_hijau),
+            df_hijau,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2725,7 +2654,7 @@ with st.expander("📋 SENARAI STATUS PRESTASI", expanded=st.session_state.selec
 
     elif selected == "Kuning":
         render_selected_list(
-            apply_chart_bahagian(df_kuning),
+            df_kuning,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2735,7 +2664,7 @@ with st.expander("📋 SENARAI STATUS PRESTASI", expanded=st.session_state.selec
 
     elif selected == "Merah":
         render_selected_list(
-            apply_chart_bahagian(df_merah),
+            df_merah,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2745,7 +2674,7 @@ with st.expander("📋 SENARAI STATUS PRESTASI", expanded=st.session_state.selec
 
     elif selected in ["Bermula Q2", "Q2"]:
         render_selected_list(
-            apply_chart_bahagian(df_bermula_q2_filtered),
+            df_bermula_q2_filtered,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2755,7 +2684,7 @@ with st.expander("📋 SENARAI STATUS PRESTASI", expanded=st.session_state.selec
 
     elif selected in ["Bermula Q3", "Q3"]:
         render_selected_list(
-            apply_chart_bahagian(df_bermula_q3_filtered),
+            df_bermula_q3_filtered,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2765,7 +2694,7 @@ with st.expander("📋 SENARAI STATUS PRESTASI", expanded=st.session_state.selec
 
     elif selected in ["Bermula Q4", "Q4"]:
         render_selected_list(
-            apply_chart_bahagian(df_bermula_q4_filtered),
+            df_bermula_q4_filtered,
             sektor_col,
             bahagian_col,
             program_col,
@@ -2775,7 +2704,7 @@ with st.expander("📋 SENARAI STATUS PRESTASI", expanded=st.session_state.selec
 
     elif selected == "Tidak Dilaksanakan":
         render_selected_list(
-            apply_chart_bahagian(df_tidak_filtered),
+            df_tidak_filtered,
             sektor_col,
             bahagian_col,
             program_col,
