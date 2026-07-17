@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 import re
+import hmac
 
 # =====================================================
 # PAGE SETUP
@@ -13,6 +14,147 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+
+# =====================================================
+# PASSWORD PROTECTION
+# =====================================================
+# Password dashboard.
+# Boleh tukar nilai ini terus jika tidak menggunakan Streamlit Secrets.
+DEFAULT_PASSWORD = "Progr@m123"
+
+# Nama session baharu digunakan supaya sesi login lama tidak melepasi
+# paparan password selepas fail ini dikemas kini.
+AUTH_SESSION_KEY = "program_dashboard_authenticated_v2"
+
+
+def get_app_password():
+    """
+    Ambil password daripada Streamlit Secrets jika APP_PASSWORD tersedia.
+    Jika tiada, gunakan DEFAULT_PASSWORD.
+    """
+    try:
+        secret_password = st.secrets.get("APP_PASSWORD", "")
+        if str(secret_password).strip():
+            return str(secret_password)
+    except Exception:
+        pass
+
+    return DEFAULT_PASSWORD
+
+
+def check_password():
+    """Sekat semua kandungan dashboard sehingga password yang betul dimasukkan."""
+    if st.session_state.get(AUTH_SESSION_KEY, False):
+        return
+
+    # Pastikan sidebar tidak kelihatan pada halaman login.
+    st.markdown(
+        """
+        <style>
+        section[data-testid="stSidebar"] {
+            display: none !important;
+        }
+
+        header[data-testid="stHeader"] {
+            background: transparent !important;
+        }
+
+        .stApp {
+            background:
+                radial-gradient(circle at 15% 10%, rgba(191,219,254,0.55) 0%, transparent 30%),
+                radial-gradient(circle at 85% 18%, rgba(220,252,231,0.42) 0%, transparent 32%),
+                linear-gradient(135deg, #f8fafc 0%, #eef3f8 50%, #ffffff 100%) !important;
+        }
+
+        .main .block-container,
+        .block-container {
+            max-width: 560px !important;
+            padding-top: 5rem !important;
+            padding-left: 1.5rem !important;
+            padding-right: 1.5rem !important;
+        }
+
+        .login-card {
+            background: rgba(255,255,255,0.94);
+            border: 1px solid rgba(203,213,225,0.85);
+            border-radius: 26px;
+            padding: 34px 36px 24px 36px;
+            box-shadow:
+                0 22px 55px rgba(15,23,42,0.16),
+                inset 0 1px 0 rgba(255,255,255,0.95);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .login-icon {
+            font-size: 48px;
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+
+        .login-title {
+            font-size: 32px;
+            font-weight: 900;
+            color: #1f2937;
+            margin-bottom: 7px;
+        }
+
+        .login-subtitle {
+            font-size: 15px;
+            color: #64748b;
+            margin-bottom: 0;
+        }
+
+        div[data-testid="stForm"] {
+            background: rgba(255,255,255,0.92);
+            border: 1px solid rgba(203,213,225,0.80);
+            border-radius: 22px;
+            padding: 22px 24px 18px 24px;
+            box-shadow: 0 12px 32px rgba(15,23,42,0.10);
+        }
+        </style>
+
+        <div class="login-card">
+            <div class="login-icon">🔒</div>
+            <div class="login-title">Dashboard CIDB</div>
+            <div class="login-subtitle">
+                Sila masukkan kata laluan untuk membuka dashboard
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    with st.form("program_dashboard_login_form", clear_on_submit=False):
+        entered_password = st.text_input(
+            "Kata Laluan",
+            type="password",
+            placeholder="Masukkan kata laluan",
+            key="program_dashboard_password_input"
+        )
+
+        submit = st.form_submit_button(
+            "Masuk ke Dashboard",
+            use_container_width=True
+        )
+
+        if submit:
+            if hmac.compare_digest(
+                str(entered_password),
+                str(get_app_password())
+            ):
+                st.session_state[AUTH_SESSION_KEY] = True
+                st.session_state.pop("program_dashboard_password_input", None)
+                st.rerun()
+            else:
+                st.error("❌ Kata laluan tidak betul.")
+
+    # Sangat penting: hentikan pelaksanaan sebelum mana-mana kod dashboard dijalankan.
+    st.stop()
+
+
+check_password()
 
 SHEET_NAME = " DATA DASHBOARD"
 
@@ -2210,6 +2352,16 @@ if st.sidebar.button(
 
 st.sidebar.markdown("---")
 
+if st.sidebar.button(
+    "🔒 Log Keluar",
+    use_container_width=True,
+    key="logout_dashboard_btn"
+):
+    st.session_state[AUTH_SESSION_KEY] = False
+    st.rerun()
+
+st.sidebar.markdown("---")
+
 if filtered_df.empty:
     st.warning("Tiada data berdasarkan filter yang dipilih.")
     st.stop()
@@ -2789,5 +2941,3 @@ with st.expander("📋 SENARAI STATUS PRESTASI", expanded=False):
 
     else:
         st.info("Klik Jumlah Program, bulatan Traffic Light, atau nilai Q2/Q3/Q4/Tidak Dilaksanakan untuk lihat senarai.")
-
-
