@@ -117,7 +117,7 @@ def check_password():
 
         <div class="login-card">
             <div class="login-icon">🔒</div>
-            <div class="login-title">Dashboard CIDB</div>
+            <div class="login-title">Dashboard Progam CIDB</div>
             <div class="login-subtitle">
                 Sila masukkan kata laluan untuk membuka dashboard
             </div>
