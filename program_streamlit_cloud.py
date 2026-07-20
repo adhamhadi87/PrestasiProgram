@@ -2734,8 +2734,6 @@ if st.session_state.focus_page in FOCUS_PAGES:
             focus_next()
             st.rerun()
 
-    st.caption("Gunakan ‹ dan › untuk bertukar paparan. Klik tajuk untuk kembali ke paparan utama.")
-
     if st.session_state.focus_page == "chart":
         if chart_filtered_df.empty:
             st.warning("Tiada data carta untuk status yang dipilih.")
