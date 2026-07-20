@@ -2559,16 +2559,57 @@ if st.session_state.fullscreen_chart:
     st.markdown(
         """
         <style>
-        section[data-testid="stSidebar"] {
+        /* TRUE FULL-PAGE STREAMLIT VIEW */
+        section[data-testid="stSidebar"],
+        header[data-testid="stHeader"],
+        div[data-testid="stToolbar"],
+        div[data-testid="stDecoration"],
+        #MainMenu,
+        footer {
             display: none !important;
+            visibility: hidden !important;
         }
 
-        .main .block-container {
-            max-width: 100vw !important;
+        html,
+        body,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stApp"],
+        .stApp {
             width: 100vw !important;
+            min-width: 100vw !important;
+            max-width: 100vw !important;
+            height: 100vh !important;
             min-height: 100vh !important;
-            padding: 1rem 1.5rem 1.5rem 1.5rem !important;
             margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+        }
+
+        [data-testid="stAppViewContainer"] > .main,
+        section.main,
+        .main {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: auto !important;
+            background: #ffffff !important;
+            z-index: 9999 !important;
+        }
+
+        .main .block-container,
+        section.main > div,
+        [data-testid="stMainBlockContainer"] {
+            width: 100vw !important;
+            max-width: 100vw !important;
+            min-height: 100vh !important;
+            margin: 0 !important;
+            padding: 0.65rem 1rem 1rem 1rem !important;
+            border: none !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             background: #ffffff !important;
@@ -2576,19 +2617,20 @@ if st.session_state.fullscreen_chart:
             -webkit-backdrop-filter: none !important;
         }
 
-        .stApp {
-            background: #ffffff !important;
+        div[data-testid="stPlotlyChart"] {
+            width: 100% !important;
+            max-width: 100% !important;
         }
 
-        header[data-testid="stHeader"] {
-            background: #ffffff !important;
+        div[data-testid="stPlotlyChart"] > div {
+            width: 100% !important;
         }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-    top_left, top_right = st.columns([0.78, 0.22])
+    top_left, top_right = st.columns([0.82, 0.18])
 
     with top_left:
         st.markdown("## 📊 PENCAPAIAN MENGIKUT BAHAGIAN")
@@ -2601,13 +2643,13 @@ if st.session_state.fullscreen_chart:
     fig_fullscreen = build_bahagian_chart(
         chart_filtered_df,
         bahagian_col,
-        chart_height=max(720, chart_filtered_df[bahagian_col].nunique() * 60)
+        chart_height=max(820, chart_filtered_df[bahagian_col].nunique() * 64)
     )
 
     st.plotly_chart(
         fig_fullscreen,
         use_container_width=True,
-        config={"displaylogo": False}
+        config={"displaylogo": False, "responsive": True}
     )
 
     st.stop()
@@ -2619,16 +2661,57 @@ if st.session_state.fullscreen_list:
     st.markdown(
         """
         <style>
-        section[data-testid="stSidebar"] {
+        /* TRUE FULL-PAGE STREAMLIT VIEW */
+        section[data-testid="stSidebar"],
+        header[data-testid="stHeader"],
+        div[data-testid="stToolbar"],
+        div[data-testid="stDecoration"],
+        #MainMenu,
+        footer {
             display: none !important;
+            visibility: hidden !important;
         }
 
-        .main .block-container {
-            max-width: 100vw !important;
+        html,
+        body,
+        [data-testid="stAppViewContainer"],
+        [data-testid="stApp"],
+        .stApp {
             width: 100vw !important;
+            min-width: 100vw !important;
+            max-width: 100vw !important;
+            height: 100vh !important;
             min-height: 100vh !important;
-            padding: 1rem 1.5rem 1.5rem 1.5rem !important;
             margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff !important;
+        }
+
+        [data-testid="stAppViewContainer"] > .main,
+        section.main,
+        .main {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: auto !important;
+            background: #ffffff !important;
+            z-index: 9999 !important;
+        }
+
+        .main .block-container,
+        section.main > div,
+        [data-testid="stMainBlockContainer"] {
+            width: 100vw !important;
+            max-width: 100vw !important;
+            min-height: 100vh !important;
+            margin: 0 !important;
+            padding: 0.65rem 1rem 1rem 1rem !important;
+            border: none !important;
             border-radius: 0 !important;
             box-shadow: none !important;
             background: #ffffff !important;
@@ -2636,19 +2719,20 @@ if st.session_state.fullscreen_list:
             -webkit-backdrop-filter: none !important;
         }
 
-        .stApp {
-            background: #ffffff !important;
+        div[data-testid="stPlotlyChart"] {
+            width: 100% !important;
+            max-width: 100% !important;
         }
 
-        header[data-testid="stHeader"] {
-            background: #ffffff !important;
+        div[data-testid="stPlotlyChart"] > div {
+            width: 100% !important;
         }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-    top_left, top_right = st.columns([0.78, 0.22])
+    top_left, top_right = st.columns([0.82, 0.18])
 
     with top_left:
         st.markdown("## 📋 SENARAI STATUS PRESTASI")
