@@ -1597,6 +1597,153 @@ st.markdown(
         font-weight: 900 !important;
     }
 
+
+
+    /* FOCUS TRAFFIC LIGHT: SAME APPEARANCE AS MAIN PAGE */
+    .st-key-focus_btn_hijau_value,
+    .st-key-focus_btn_kuning_value,
+    .st-key-focus_btn_merah_value {
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        text-align: center !important;
+    }
+
+    .st-key-focus_btn_hijau_value button,
+    .st-key-focus_btn_kuning_value button,
+    .st-key-focus_btn_merah_value button {
+        width: 110px !important;
+        height: 110px !important;
+        min-height: 110px !important;
+        border-radius: 50% !important;
+        margin: 14px auto 14px auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 44px !important;
+        font-weight: 900 !important;
+        position: relative !important;
+        overflow: hidden !important;
+        border: 4px solid rgba(255,255,255,0.35) !important;
+        transition: all 0.18s ease-in-out !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+    }
+
+    .st-key-focus_btn_hijau_value button {
+        color: #ffffff !important;
+        background: radial-gradient(circle at 30% 25%, #9dffad 0%, #2ee45a 42%, #07912b 100%) !important;
+        box-shadow: 0 0 18px rgba(46,228,90,0.60), 0 0 38px rgba(46,228,90,0.36), 0 16px 30px rgba(0,0,0,0.22), inset 0 9px 13px rgba(255,255,255,0.30), inset 0 -14px 20px rgba(0,0,0,0.28) !important;
+        text-shadow: 0 3px 4px rgba(0,0,0,0.45), 0 0 12px rgba(255,255,255,0.28) !important;
+    }
+
+    .st-key-focus_btn_kuning_value button {
+        color: #263042 !important;
+        background: radial-gradient(circle at 30% 25%, #fff9b5 0%, #f6d21e 43%, #b98a00 100%) !important;
+        box-shadow: 0 0 18px rgba(246,210,30,0.62), 0 0 38px rgba(246,210,30,0.36), 0 16px 30px rgba(0,0,0,0.22), inset 0 9px 13px rgba(255,255,255,0.42), inset 0 -14px 20px rgba(0,0,0,0.20) !important;
+        text-shadow: 0 1px 0 rgba(255,255,255,0.70), 0 3px 4px rgba(0,0,0,0.28), 0 0 8px rgba(255,255,255,0.30) !important;
+    }
+
+    .st-key-focus_btn_merah_value button {
+        color: #ffffff !important;
+        background: radial-gradient(circle at 30% 25%, #ffaaaa 0%, #f04a42 42%, #a51218 100%) !important;
+        box-shadow: 0 0 18px rgba(240,74,66,0.62), 0 0 38px rgba(240,74,66,0.36), 0 16px 26px rgba(0,0,0,0.22), inset 0 9px 13px rgba(255,255,255,0.28), inset 0 -14px 20px rgba(0,0,0,0.30) !important;
+        text-shadow: 0 3px 4px rgba(0,0,0,0.45), 0 0 12px rgba(255,255,255,0.25) !important;
+    }
+
+    .st-key-focus_btn_hijau_value button:hover,
+    .st-key-focus_btn_kuning_value button:hover,
+    .st-key-focus_btn_merah_value button:hover {
+        transform: translateY(-4px) scale(1.035) !important;
+        border: 4px solid rgba(255,255,255,0.70) !important;
+    }
+
+    .st-key-focus_btn_hijau_value button p,
+    .st-key-focus_btn_kuning_value button p,
+    .st-key-focus_btn_merah_value button p {
+        font-size: 36px !important;
+        font-weight: 900 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .st-key-focus_btn_q2_status button,
+    .st-key-focus_btn_q3_status button,
+    .st-key-focus_btn_q4_status button,
+    .st-key-focus_btn_gugur_status button {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: #245be8 !important;
+        font-size: 26px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+        padding: 0 !important;
+        margin-top: -7px !important;
+        margin-bottom: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        width: auto !important;
+        text-align: left !important;
+    }
+
+    .st-key-focus_btn_q2_status button:hover,
+    .st-key-focus_btn_q3_status button:hover,
+    .st-key-focus_btn_q4_status button:hover,
+    .st-key-focus_btn_gugur_status button:hover {
+        color: #1d4ed8 !important;
+        text-decoration: underline !important;
+        transform: none !important;
+        border: none !important;
+    }
+
+    .st-key-focus_btn_q2_status button p,
+    .st-key-focus_btn_q3_status button p,
+    .st-key-focus_btn_q4_status button p,
+    .st-key-focus_btn_gugur_status button p {
+        color: #245be8 !important;
+        font-size: 30px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .st-key-focus_btn_jumlah_program button {
+        margin-left: 0 !important;
+        margin-right: auto !important;
+        text-align: left !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        color: #2f3b4d !important;
+        font-size: 46px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        width: auto !important;
+        display: block !important;
+    }
+
+    .st-key-focus_btn_jumlah_program button:hover {
+        color: #245be8 !important;
+        transform: scale(1.04) !important;
+        text-decoration: underline !important;
+        border: none !important;
+    }
+
+    .st-key-focus_btn_jumlah_program button p {
+        font-size: 42px !important;
+        font-weight: 900 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
