@@ -2461,6 +2461,17 @@ program_gugur_col = find_col_exact(df, [
     "BIL PROGRAM GUGUR"
 ])
 
+# Fallback tetap berdasarkan struktur sheet Q2 CLEAN:
+# E = Bil. Program, F = Bil. Program DiTambah, G = Bil. Program Gugur.
+# Ini memastikan program tambahan Q2 masuk dalam jumlah keseluruhan.
+if ACTIVE_QUARTER == "Q2":
+    if bil_program_col is None and len(df.columns) > 4:
+        bil_program_col = df.columns[4]
+    if program_ditambah_col is None and len(df.columns) > 5:
+        program_ditambah_col = df.columns[5]
+    if program_gugur_col is None and len(df.columns) > 6:
+        program_gugur_col = df.columns[6]
+
 if ACTIVE_QUARTER == "Q1":
     weightage_col = find_col_exact(df, [
         "PERATUS SASARAN (WEIGHTAGE) Q1",
@@ -2531,8 +2542,17 @@ df["JUMLAH_PROGRAM_NUM"] = (
     + df["BIL_PROGRAM_DITAMBAH_NUM"]
 )
 
-# Fallback untuk fail lama yang tiada kolum bilangan program.
-df.loc[df["JUMLAH_PROGRAM_NUM"] <= 0, "JUMLAH_PROGRAM_NUM"] = 1
+# Fallback hanya untuk fail lama/Q1 yang benar-benar tiada kolum bilangan program.
+# Untuk Q2, jangan tambah 1 secara automatik kerana ia boleh mengganggu jumlah sebenar.
+if ACTIVE_QUARTER == "Q1":
+    df.loc[df["JUMLAH_PROGRAM_NUM"] <= 0, "JUMLAH_PROGRAM_NUM"] = 1
+else:
+    missing_q2_count = df["JUMLAH_PROGRAM_NUM"] <= 0
+    df.loc[missing_q2_count & df[program_col].notna(), "JUMLAH_PROGRAM_NUM"] = 1
+
+# Semakan kawalan Q2: jumlah penuh tanpa filter hendaklah 263
+# (258 program asal + 5 program tambahan).
+JUMLAH_PROGRAM_Q2_SEPATUTNYA = 263
 
 df["JENIS_PROGRAM"] = "PROGRAM ASAL"
 df.loc[df["BIL_PROGRAM_DITAMBAH_NUM"] > 0, "JENIS_PROGRAM"] = "PROGRAM TAMBAHAN Q2"
