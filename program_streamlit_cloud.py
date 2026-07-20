@@ -760,14 +760,14 @@ st.markdown(
     }
 
     .static-circle {
-        width: 138px !important;
-        height: 138px !important;
+        width: 110px !important;
+        height: 110px !important;
         border-radius: 50% !important;
         margin: 14px auto 14px auto !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 44px !important;
+        font-size: 36px !important;
         font-weight: 900 !important;
         position: relative !important;
         overflow: hidden !important;
@@ -856,7 +856,7 @@ st.markdown(
 
     .static-range {
         text-align: center !important;
-        font-size: 16px !important;
+        font-size: 14px !important;
         font-weight: 900 !important;
         color: #111827 !important;
         margin-bottom: 8px !important;
@@ -937,9 +937,9 @@ st.markdown(
     .st-key-btn_hijau_value button,
     .st-key-btn_kuning_value button,
     .st-key-btn_merah_value button {
-        width: 138px !important;
-        height: 138px !important;
-        min-height: 138px !important;
+        width: 110px !important;
+        height: 110px !important;
+        min-height: 110px !important;
         border-radius: 50% !important;
         margin: 14px auto 14px auto !important;
         display: flex !important;
@@ -1021,7 +1021,7 @@ st.markdown(
     .st-key-btn_hijau_value button p,
     .st-key-btn_kuning_value button p,
     .st-key-btn_merah_value button p {
-        font-size: 44px !important;
+        font-size: 36px !important;
         font-weight: 900 !important;
         margin: 0 !important;
         padding: 0 !important;
