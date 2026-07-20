@@ -2388,12 +2388,6 @@ if st.sidebar.button(
     if "selected_traffic" in st.session_state:
         st.session_state.selected_traffic = None
 
-    if "fullscreen_chart" in st.session_state:
-        st.session_state.fullscreen_chart = False
-
-    if "fullscreen_list" in st.session_state:
-        st.session_state.fullscreen_list = False
-
     st.rerun()
 
 if st.sidebar.button(
@@ -2408,12 +2402,6 @@ if st.sidebar.button(
 
     if "selected_traffic" in st.session_state:
         st.session_state.selected_traffic = None
-
-    if "fullscreen_chart" in st.session_state:
-        st.session_state.fullscreen_chart = False
-
-    if "fullscreen_list" in st.session_state:
-        st.session_state.fullscreen_list = False
 
     st.rerun()
 
@@ -2544,290 +2532,7 @@ filtered_df["KATEGORI_TRAFFIC"] = filtered_df["TRAFFIC_LIGHT"].replace({
 if "selected_traffic" not in st.session_state:
     st.session_state.selected_traffic = None
 
-if "fullscreen_chart" not in st.session_state:
-    st.session_state.fullscreen_chart = False
-
-if "fullscreen_list" not in st.session_state:
-    st.session_state.fullscreen_list = False
-
 chart_filtered_df = get_chart_source_df(filtered_df)
-
-# =====================================================
-# CUSTOM FULLSCREEN PAGE - CARTA SAHAJA
-# =====================================================
-if st.session_state.fullscreen_chart:
-    st.markdown(
-        """
-        <style>
-        /* TRUE FULL-PAGE STREAMLIT VIEW */
-        section[data-testid="stSidebar"],
-        header[data-testid="stHeader"],
-        div[data-testid="stToolbar"],
-        div[data-testid="stDecoration"],
-        #MainMenu,
-        footer {
-            display: none !important;
-            visibility: hidden !important;
-        }
-
-        html,
-        body,
-        [data-testid="stAppViewContainer"],
-        [data-testid="stApp"],
-        .stApp {
-            width: 100vw !important;
-            min-width: 100vw !important;
-            max-width: 100vw !important;
-            height: 100vh !important;
-            min-height: 100vh !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            background: #ffffff !important;
-        }
-
-        [data-testid="stAppViewContainer"] > .main,
-        section.main,
-        .main {
-            position: fixed !important;
-            inset: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-width: 100vw !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: auto !important;
-            background: #ffffff !important;
-            z-index: 9999 !important;
-        }
-
-        .main .block-container,
-        section.main > div,
-        [data-testid="stMainBlockContainer"] {
-            width: 100vw !important;
-            max-width: 100vw !important;
-            min-height: 100vh !important;
-            margin: 0 !important;
-            padding: 0.65rem 1rem 1rem 1rem !important;
-            border: none !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            background: #ffffff !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-        }
-
-        div[data-testid="stPlotlyChart"] {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
-        div[data-testid="stPlotlyChart"] > div {
-            width: 100% !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    top_left, top_right = st.columns([0.82, 0.18])
-
-    with top_left:
-        st.markdown("## 📊 PENCAPAIAN MENGIKUT BAHAGIAN")
-
-    with top_right:
-        if st.button("⬅️ Kembali ke Dashboard", use_container_width=True):
-            st.session_state.fullscreen_chart = False
-            st.rerun()
-
-    fig_fullscreen = build_bahagian_chart(
-        chart_filtered_df,
-        bahagian_col,
-        chart_height=max(820, chart_filtered_df[bahagian_col].nunique() * 64)
-    )
-
-    st.plotly_chart(
-        fig_fullscreen,
-        use_container_width=True,
-        config={"displaylogo": False, "responsive": True}
-    )
-
-    st.stop()
-
-# =====================================================
-# CUSTOM FULLSCREEN PAGE - SENARAI STATUS PRESTASI SAHAJA
-# =====================================================
-if st.session_state.fullscreen_list:
-    st.markdown(
-        """
-        <style>
-        /* TRUE FULL-PAGE STREAMLIT VIEW */
-        section[data-testid="stSidebar"],
-        header[data-testid="stHeader"],
-        div[data-testid="stToolbar"],
-        div[data-testid="stDecoration"],
-        #MainMenu,
-        footer {
-            display: none !important;
-            visibility: hidden !important;
-        }
-
-        html,
-        body,
-        [data-testid="stAppViewContainer"],
-        [data-testid="stApp"],
-        .stApp {
-            width: 100vw !important;
-            min-width: 100vw !important;
-            max-width: 100vw !important;
-            height: 100vh !important;
-            min-height: 100vh !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            background: #ffffff !important;
-        }
-
-        [data-testid="stAppViewContainer"] > .main,
-        section.main,
-        .main {
-            position: fixed !important;
-            inset: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            max-width: 100vw !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: auto !important;
-            background: #ffffff !important;
-            z-index: 9999 !important;
-        }
-
-        .main .block-container,
-        section.main > div,
-        [data-testid="stMainBlockContainer"] {
-            width: 100vw !important;
-            max-width: 100vw !important;
-            min-height: 100vh !important;
-            margin: 0 !important;
-            padding: 0.65rem 1rem 1rem 1rem !important;
-            border: none !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            background: #ffffff !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-        }
-
-        div[data-testid="stPlotlyChart"] {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
-        div[data-testid="stPlotlyChart"] > div {
-            width: 100% !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    top_left, top_right = st.columns([0.82, 0.18])
-
-    with top_left:
-        st.markdown("## 📋 SENARAI STATUS PRESTASI")
-
-    with top_right:
-        if st.button("⬅️ Kembali ke Dashboard", use_container_width=True):
-            st.session_state.fullscreen_list = False
-            st.rerun()
-
-    selected = st.session_state.selected_traffic
-
-    if selected == "Semua":
-        render_selected_list(
-            filtered_df,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Semua"
-        )
-
-    elif selected == "Hijau":
-        render_selected_list(
-            df_hijau,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Hijau"
-        )
-
-    elif selected == "Kuning":
-        render_selected_list(
-            df_kuning,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Kuning"
-        )
-
-    elif selected == "Merah":
-        render_selected_list(
-            df_merah,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Merah"
-        )
-
-    elif selected in ["Bermula Q2", "Q2"]:
-        render_selected_list(
-            df_bermula_q2_filtered,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Q2"
-        )
-
-    elif selected in ["Bermula Q3", "Q3"]:
-        render_selected_list(
-            df_bermula_q3_filtered,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Q3"
-        )
-
-    elif selected in ["Bermula Q4", "Q4"]:
-        render_selected_list(
-            df_bermula_q4_filtered,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Q4"
-        )
-
-    elif selected == "Tidak Dilaksanakan":
-        render_selected_list(
-            df_tidak_filtered,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Tidak Dilaksanakan"
-        )
-
-    else:
-        st.info("Klik Jumlah Program, bulatan Traffic Light, atau nilai Q2/Q3/Q4/Tidak Dilaksanakan untuk lihat senarai.")
-
-    st.stop()
 
 main_left, main_right = st.columns([3.0, 1.05], gap="medium")
 
@@ -2973,206 +2678,199 @@ st.divider()
 
 
 # =====================================================
-# ACCORDION 1 - CARTA MENGIKUT BAHAGIAN
+# CARTA MENGIKUT BAHAGIAN - PAPARAN TERUS SEPERTI E-FILING
+# Ikon fullscreen asal Streamlit/Plotly digunakan tanpa butang tambahan.
 # =====================================================
-with st.expander("📊 PENCAPAIAN MENGIKUT BAHAGIAN", expanded=st.session_state.selected_traffic is not None):
+st.markdown("### 📊 PENCAPAIAN MENGIKUT BAHAGIAN")
 
-    btn_col1, btn_col2 = st.columns([0.78, 0.22])
+if chart_filtered_df.empty:
+    st.warning("Tiada data carta untuk status yang dipilih.")
+else:
+    fig_bahagian_stack = build_bahagian_chart(
+        chart_filtered_df,
+        bahagian_col
+    )
 
-    with btn_col2:
-        if st.button("🖥️ Full Screen Carta", use_container_width=True):
-            st.session_state.fullscreen_chart = True
-            st.rerun()
+    st.plotly_chart(
+        fig_bahagian_stack,
+        use_container_width=True,
+        key="bahagian_chart_main",
+        config={
+            "displaylogo": False,
+            "responsive": True,
+            "displayModeBar": True
+        }
+    )
 
-    if chart_filtered_df.empty:
-        st.warning("Tiada data carta untuk status yang dipilih.")
-    else:
-        fig_bahagian_stack = build_bahagian_chart(chart_filtered_df, bahagian_col)
-
-        st.plotly_chart(
-            fig_bahagian_stack,
-            use_container_width=True,
-            config={"displaylogo": False}
-        )
-
+st.divider()
 
 # =====================================================
-# ACCORDION 2 - SENARAI STATUS + SUMMARY PROGRAM
+# LAPORAN STATUS PRESTASI - PAPARAN TERUS SEPERTI E-FILING
+# Dataframe menggunakan ikon fullscreen asal Streamlit.
 # =====================================================
-with st.expander("📋 LAPORAN STATUS PRESTASI", expanded=False):
+st.markdown("### 📋 LAPORAN STATUS PRESTASI")
 
-    tab_senarai, tab_summary = st.tabs([
-        "📋 SENARAI STATUS PRESTASI",
-        "📑 SUMMARY PROGRAM MENGIKUT BAHAGIAN"
-    ])
+tab_senarai, tab_summary = st.tabs([
+    "📋 SENARAI STATUS PRESTASI",
+    "📑 SUMMARY PROGRAM MENGIKUT BAHAGIAN"
+])
 
-    with tab_senarai:
-        list_btn_col1, list_btn_col2 = st.columns([0.78, 0.22])
+with tab_senarai:
+    selected = st.session_state.selected_traffic
 
-        with list_btn_col2:
-            if st.button(
-                "🖥️ Full Screen Senarai",
-                use_container_width=True,
-                key="fullscreen_list_tab_btn"
-            ):
-                st.session_state.fullscreen_list = True
-                st.rerun()
-
-        selected = st.session_state.selected_traffic
-
-        if selected == "Semua":
-            render_selected_list(
-                filtered_df,
-                sektor_col,
-                bahagian_col,
-                program_col,
-                pencapaian_col,
-                "Semua"
-            )
-
-        elif selected == "Hijau":
-            render_selected_list(
-                df_hijau,
-                sektor_col,
-                bahagian_col,
-                program_col,
-                pencapaian_col,
-                "Hijau"
-            )
-
-        elif selected == "Kuning":
-            render_selected_list(
-                df_kuning,
-                sektor_col,
-                bahagian_col,
-                program_col,
-                pencapaian_col,
-                "Kuning"
-            )
-
-        elif selected == "Merah":
-            render_selected_list(
-                df_merah,
-                sektor_col,
-                bahagian_col,
-                program_col,
-                pencapaian_col,
-                "Merah"
-            )
-
-        elif selected in ["Bermula Q2", "Q2"]:
-            render_selected_list(
-                df_bermula_q2_filtered,
-                sektor_col,
-                bahagian_col,
-                program_col,
-                pencapaian_col,
-                "Q2"
-            )
-
-        elif selected in ["Bermula Q3", "Q3"]:
-            render_selected_list(
-                df_bermula_q3_filtered,
-                sektor_col,
-                bahagian_col,
-                program_col,
-                pencapaian_col,
-                "Q3"
-            )
-
-        elif selected in ["Bermula Q4", "Q4"]:
-            render_selected_list(
-                df_bermula_q4_filtered,
-                sektor_col,
-                bahagian_col,
-                program_col,
-                pencapaian_col,
-                "Q4"
-            )
-
-        elif selected == "Tidak Dilaksanakan":
-            render_selected_list(
-                df_tidak_filtered,
-                sektor_col,
-                bahagian_col,
-                program_col,
-                pencapaian_col,
-                "Tidak Dilaksanakan"
-            )
-
-        else:
-            st.info(
-                "Klik Jumlah Program, bulatan Traffic Light, atau nilai "
-                "Q2/Q3/Q4/Tidak Dilaksanakan untuk lihat senarai."
-            )
-
-    with tab_summary:
-        st.markdown("### SUMMARY PROGRAM MENGIKUT BAHAGIAN")
-        st.caption(
-            "Ringkasan ini berubah mengikut filter Sektor, Bahagian dan Kod Program."
-        )
-
-        summary_df = build_summary_program_bahagian(
+    if selected == "Semua":
+        render_selected_list(
             filtered_df,
-            bahagian_col
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Semua"
         )
 
-        if summary_df.empty:
-            st.warning("Tiada data untuk dipaparkan dalam summary.")
-        else:
-            summary_display = summary_df.rename(columns={
-                "Hijau": "🟢 HIJAU",
-                "Kuning": "🟡 KUNING",
-                "Merah": "🔴 MERAH",
-                "Q2": "Q2",
-                "Q3": "Q3",
-                "Q4": "Q4",
-                "Tidak Dilaksanakan": "TIDAK DILAKSANAKAN",
-                "JUMLAH": "JUMLAH PROGRAM"
-            })
+    elif selected == "Hijau":
+        render_selected_list(
+            df_hijau,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Hijau"
+        )
 
-            numeric_cols = [
-                "🟢 HIJAU",
-                "🟡 KUNING",
-                "🔴 MERAH",
-                "Q2",
-                "Q3",
-                "Q4",
-                "TIDAK DILAKSANAKAN",
-                "JUMLAH PROGRAM"
-            ]
+    elif selected == "Kuning":
+        render_selected_list(
+            df_kuning,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Kuning"
+        )
 
-            for col in numeric_cols:
-                if col in summary_display.columns:
-                    summary_display[col] = (
-                        pd.to_numeric(summary_display[col], errors="coerce")
-                        .fillna(0)
-                        .astype(int)
-                    )
+    elif selected == "Merah":
+        render_selected_list(
+            df_merah,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Merah"
+        )
 
-            st.dataframe(
-                summary_display.style.apply(
-                    highlight_summary_table,
-                    axis=1
-                ).format({
-                    col: "{:,.0f}"
-                    for col in numeric_cols
-                    if col in summary_display.columns
-                }),
-                use_container_width=True,
-                hide_index=True,
-                height=min(720, 80 + (len(summary_display) * 35))
-            )
+    elif selected in ["Bermula Q2", "Q2"]:
+        render_selected_list(
+            df_bermula_q2_filtered,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Q2"
+        )
 
-            summary_csv = summary_display.to_csv(
-                index=False
-            ).encode("utf-8-sig")
+    elif selected in ["Bermula Q3", "Q3"]:
+        render_selected_list(
+            df_bermula_q3_filtered,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Q3"
+        )
 
-            st.download_button(
-                label="⬇️ Download Summary Program Mengikut Bahagian",
-                data=summary_csv,
-                file_name="summary_program_mengikut_bahagian.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="download_summary_bahagian_btn"
-            )
+    elif selected in ["Bermula Q4", "Q4"]:
+        render_selected_list(
+            df_bermula_q4_filtered,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Q4"
+        )
+
+    elif selected == "Tidak Dilaksanakan":
+        render_selected_list(
+            df_tidak_filtered,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Tidak Dilaksanakan"
+        )
+
+    else:
+        st.info(
+            "Klik Jumlah Program, bulatan Traffic Light, atau nilai "
+            "Q2/Q3/Q4/Tidak Dilaksanakan untuk lihat senarai."
+        )
+
+with tab_summary:
+    st.markdown("### SUMMARY PROGRAM MENGIKUT BAHAGIAN")
+    st.caption(
+        "Ringkasan ini berubah mengikut filter Sektor, Bahagian dan Kod Program."
+    )
+
+    summary_df = build_summary_program_bahagian(
+        filtered_df,
+        bahagian_col
+    )
+
+    if summary_df.empty:
+        st.warning("Tiada data untuk dipaparkan dalam summary.")
+    else:
+        summary_display = summary_df.rename(columns={
+            "Hijau": "🟢 HIJAU",
+            "Kuning": "🟡 KUNING",
+            "Merah": "🔴 MERAH",
+            "Q2": "Q2",
+            "Q3": "Q3",
+            "Q4": "Q4",
+            "Tidak Dilaksanakan": "TIDAK DILAKSANAKAN",
+            "JUMLAH": "JUMLAH PROGRAM"
+        })
+
+        numeric_cols = [
+            "🟢 HIJAU",
+            "🟡 KUNING",
+            "🔴 MERAH",
+            "Q2",
+            "Q3",
+            "Q4",
+            "TIDAK DILAKSANAKAN",
+            "JUMLAH PROGRAM"
+        ]
+
+        for col in numeric_cols:
+            if col in summary_display.columns:
+                summary_display[col] = (
+                    pd.to_numeric(summary_display[col], errors="coerce")
+                    .fillna(0)
+                    .astype(int)
+                )
+
+        st.dataframe(
+            summary_display.style.apply(
+                highlight_summary_table,
+                axis=1
+            ).format({
+                col: "{:,.0f}"
+                for col in numeric_cols
+                if col in summary_display.columns
+            }),
+            use_container_width=True,
+            hide_index=True,
+            height=min(720, 80 + (len(summary_display) * 35))
+        )
+
+        summary_csv = summary_display.to_csv(
+            index=False
+        ).encode("utf-8-sig")
+
+        st.download_button(
+            label="⬇️ Download Summary Program Mengikut Bahagian",
+            data=summary_csv,
+            file_name="summary_program_mengikut_bahagian.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key="download_summary_bahagian_btn"
+        )
