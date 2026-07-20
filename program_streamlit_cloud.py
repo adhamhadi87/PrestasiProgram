@@ -1809,7 +1809,7 @@ def detect_status_khas(row):
     ]
 
     if any(pattern in status_text for pattern in tidak_patterns):
-        return "GUGUR"
+        return "TIDAK DILAKSANAKAN"
 
     if "BERMULA Q2" in status_text or "MULA Q2" in status_text or status_text.strip() == "Q2":
         return "BERMULA Q2"
@@ -2260,7 +2260,7 @@ jumlah_asal = len(df)
 df_bermula_q2 = df[df["STATUS_KHAS"] == "BERMULA Q2"].copy()
 df_bermula_q3 = df[df["STATUS_KHAS"] == "BERMULA Q3"].copy()
 df_bermula_q4 = df[df["STATUS_KHAS"] == "BERMULA Q4"].copy()
-df_tidak_dilaksanakan = df[df["STATUS_KHAS"] == "GUGUR"].copy()
+df_tidak_dilaksanakan = df[df["STATUS_KHAS"] == "TIDAK DILAKSANAKAN"].copy()
 
 df_dinilai = df[
     (df["STATUS_KHAS"] == "")
@@ -2446,7 +2446,7 @@ df_merah = filtered_dinilai[filtered_dinilai["KPI_PENCAPAIAN_NUM"] < 60].copy()
 df_bermula_q2_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "BERMULA Q2"].copy()
 df_bermula_q3_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "BERMULA Q3"].copy()
 df_bermula_q4_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "BERMULA Q4"].copy()
-df_tidak_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "GUGUR"].copy()
+df_tidak_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "TIDAK DILAKSANAKAN"].copy()
 
 hijau = len(df_hijau)
 kuning = len(df_kuning)
@@ -2535,8 +2535,7 @@ if "selected_traffic" not in st.session_state:
 chart_filtered_df = get_chart_source_df(filtered_df)
 
 # =====================================================
-# FOCUS MODE: TRAFFIC LIGHT / CARTA / LAPORAN
-# Sidebar kekal kelihatan. Navigasi menggunakan < dan > tanpa butang X.
+# PAPARAN BESAR MINIMUM - ASAL DIKEKALKAN
 # =====================================================
 FOCUS_PAGES = ["traffic", "chart", "report"]
 FOCUS_TITLES = {
@@ -2545,208 +2544,399 @@ FOCUS_TITLES = {
     "report": "📋 LAPORAN STATUS PRESTASI",
 }
 
-if "focus_mode" not in st.session_state:
-    st.session_state.focus_mode = None
+if "focus_page" not in st.session_state:
+    st.session_state.focus_page = None
 
 
-def open_focus(page_name):
-    st.session_state.focus_mode = page_name
+def focus_previous():
+    current = st.session_state.get("focus_page") or "traffic"
+    index = FOCUS_PAGES.index(current)
+    st.session_state.focus_page = FOCUS_PAGES[(index - 1) % len(FOCUS_PAGES)]
 
 
-def move_focus(step):
-    current = st.session_state.get("focus_mode")
-    if current not in FOCUS_PAGES:
-        current = FOCUS_PAGES[0]
-    current_index = FOCUS_PAGES.index(current)
-    st.session_state.focus_mode = FOCUS_PAGES[
-        (current_index + step) % len(FOCUS_PAGES)
-    ]
+def focus_next():
+    current = st.session_state.get("focus_page") or "traffic"
+    index = FOCUS_PAGES.index(current)
+    st.session_state.focus_page = FOCUS_PAGES[(index + 1) % len(FOCUS_PAGES)]
 
 
-def render_focus_navigation():
-    left_col, title_col, right_col = st.columns([1, 10, 1])
+def focus_home():
+    st.session_state.focus_page = None
 
-    with left_col:
-        if st.button(
-            "‹",
-            key="focus_previous_btn",
-            help="Paparan sebelumnya",
-            use_container_width=True
-        ):
-            move_focus(-1)
+
+if st.session_state.focus_page in FOCUS_PAGES:
+    nav_left, nav_title, nav_right = st.columns([1, 10, 1])
+
+    with nav_left:
+        if st.button("‹", key="focus_previous_btn", use_container_width=True):
+            focus_previous()
             st.rerun()
 
-    with title_col:
-        current_title = FOCUS_TITLES.get(
-            st.session_state.focus_mode,
-            "PAPARAN BESAR"
-        )
-        st.markdown(
-            f"<h2 style='text-align:center; margin:0;'>{current_title}</h2>",
-            unsafe_allow_html=True
-        )
-        st.caption(
-            "Gunakan ‹ dan › untuk bergerak antara Traffic Light, Carta dan Laporan. "
-            "Sidebar serta semua filter kekal aktif."
-        )
-
-    with right_col:
+    with nav_title:
         if st.button(
-            "›",
-            key="focus_next_btn",
-            help="Paparan seterusnya",
-            use_container_width=True
-        ):
-            move_focus(1)
-            st.rerun()
-
-    home_left, home_mid, home_right = st.columns([4, 2, 4])
-    with home_mid:
-        if st.button(
-            "⌂ Paparan Utama",
+            FOCUS_TITLES[st.session_state.focus_page],
             key="focus_home_btn",
-            help="Kembali ke dashboard penuh",
+            help="Kembali ke paparan utama",
             use_container_width=True
         ):
-            st.session_state.focus_mode = None
+            focus_home()
             st.rerun()
 
-    st.divider()
+    with nav_right:
+        if st.button("›", key="focus_next_btn", use_container_width=True):
+            focus_next()
+            st.rerun()
 
+    st.caption("Gunakan ‹ dan › untuk bertukar paparan. Klik tajuk untuk kembali ke paparan utama.")
 
-def render_traffic_panel(focus=False):
-    if focus:
-        st.markdown("### Ringkasan Traffic Light")
-
-    main_left, main_right = st.columns([3.0, 1.05], gap="medium")
-
-    with main_left:
-        st.markdown('<div class="traffic-container">', unsafe_allow_html=True)
-        c1, c2, c3 = st.columns(3)
-
-        with c1:
-            st.markdown(
-                '<div class="static-traffic-card"><div class="static-range">≥ 85%</div></div>',
-                unsafe_allow_html=True
+    if st.session_state.focus_page == "chart":
+        if chart_filtered_df.empty:
+            st.warning("Tiada data carta untuk status yang dipilih.")
+        else:
+            fig_bahagian_besar = build_bahagian_chart(
+                chart_filtered_df,
+                bahagian_col,
+                chart_height=max(760, chart_filtered_df[bahagian_col].nunique() * 58)
             )
-            if st.button(f"{hijau}", key=f"btn_hijau_value_{'focus' if focus else 'main'}"):
-                st.session_state.selected_traffic = "Hijau"
-                st.session_state.pop("selected_chart_bahagian", None)
-                st.rerun()
-
-        with c2:
-            st.markdown(
-                '<div class="static-traffic-card"><div class="static-range">60% - 84.99%</div></div>',
-                unsafe_allow_html=True
+            fig_bahagian_besar.update_layout(
+                margin=dict(l=20, r=25, t=65, b=35),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
             )
-            if st.button(f"{kuning}", key=f"btn_kuning_value_{'focus' if focus else 'main'}"):
-                st.session_state.selected_traffic = "Kuning"
-                st.session_state.pop("selected_chart_bahagian", None)
-                st.rerun()
-
-        with c3:
-            st.markdown(
-                '<div class="static-traffic-card"><div class="static-range">&lt; 60%</div></div>',
-                unsafe_allow_html=True
+            st.plotly_chart(
+                fig_bahagian_besar,
+                use_container_width=True,
+                key="bahagian_chart_focus",
+                config={"displaylogo": False, "responsive": True, "displayModeBar": True}
             )
-            if st.button(f"{merah}", key=f"btn_merah_value_{'focus' if focus else 'main'}"):
-                st.session_state.selected_traffic = "Merah"
-                st.session_state.pop("selected_chart_bahagian", None)
-                st.rerun()
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<div style='margin-top:22px; margin-bottom:10px;'>", unsafe_allow_html=True)
-        q_col1, q_sep1, q_col2, q_sep2, q_col3, q_sep3, q_col4 = st.columns(
-            [1.45, 0.12, 1.45, 0.12, 1.45, 0.12, 2.0]
-        )
+    elif st.session_state.focus_page == "traffic":
+        focus_left, focus_right = st.columns([3.0, 1.05], gap="medium")
 
-        status_items = [
-            (q_col1, "Q2", bermula_q2, "Q2"),
-            (q_col2, "Q3", bermula_q3, "Q3"),
-            (q_col3, "Q4", bermula_q4, "Q4"),
-            (q_col4, "GUGUR", tidak_dilaksanakan, "Gugur"),
-        ]
+        with focus_left:
+            st.markdown('<div class="traffic-container">', unsafe_allow_html=True)
+            fc1, fc2, fc3 = st.columns(3)
 
-        for idx, (col, label, value, selected_value) in enumerate(status_items):
-            with col:
-                label_ratio = [2.5, 1] if label != "GUGUR" else [3.2, 1]
-                label_col, value_col = st.columns(label_ratio)
-                with label_col:
-                    st.markdown(
-                        f'<div class="status-label-text">{label} -</div>',
-                        unsafe_allow_html=True
-                    )
-                with value_col:
-                    if st.button(
-                        str(value),
-                        key=f"btn_{label.lower()}_status_{'focus' if focus else 'main'}"
-                    ):
-                        st.session_state.selected_traffic = selected_value
-                        st.session_state.pop("selected_chart_bahagian", None)
+            with fc1:
+                st.markdown('<div class="static-traffic-card"><div class="static-range">≥ 85%</div></div>', unsafe_allow_html=True)
+                if st.button(f"{hijau}", key="focus_btn_hijau_value"):
+                    st.session_state.selected_traffic = "Hijau"
+                    st.rerun()
+
+            with fc2:
+                st.markdown('<div class="static-traffic-card"><div class="static-range">60% - 84.99%</div></div>', unsafe_allow_html=True)
+                if st.button(f"{kuning}", key="focus_btn_kuning_value"):
+                    st.session_state.selected_traffic = "Kuning"
+                    st.rerun()
+
+            with fc3:
+                st.markdown('<div class="static-traffic-card"><div class="static-range">< 60%</div></div>', unsafe_allow_html=True)
+                if st.button(f"{merah}", key="focus_btn_merah_value"):
+                    st.session_state.selected_traffic = "Merah"
+                    st.rerun()
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<div style='margin-top:22px; margin-bottom:10px;'>", unsafe_allow_html=True)
+            fq1, fsep1, fq2, fsep2, fq3, fsep3, fq4 = st.columns([1.45, 0.12, 1.45, 0.12, 1.45, 0.12, 3.25])
+
+            with fq1:
+                flabel, fvalue = st.columns([2.5, 1])
+                with flabel:
+                    st.markdown('<div class="status-label-text">Q2 -</div>', unsafe_allow_html=True)
+                with fvalue:
+                    if st.button(str(bermula_q2), key="focus_btn_q2_status"):
+                        st.session_state.selected_traffic = "Q2"
+                        st.rerun()
+            with fsep1:
+                st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+            with fq2:
+                flabel, fvalue = st.columns([2.5, 1])
+                with flabel:
+                    st.markdown('<div class="status-label-text">Q3 -</div>', unsafe_allow_html=True)
+                with fvalue:
+                    if st.button(str(bermula_q3), key="focus_btn_q3_status"):
+                        st.session_state.selected_traffic = "Q3"
+                        st.rerun()
+            with fsep2:
+                st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+            with fq3:
+                flabel, fvalue = st.columns([2.5, 1])
+                with flabel:
+                    st.markdown('<div class="status-label-text">Q4 -</div>', unsafe_allow_html=True)
+                with fvalue:
+                    if st.button(str(bermula_q4), key="focus_btn_q4_status"):
+                        st.session_state.selected_traffic = "Q4"
+                        st.rerun()
+            with fsep3:
+                st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+            with fq4:
+                flabel, fvalue = st.columns([3.0, 1])
+                with flabel:
+                    st.markdown('<div class="status-label-text">GUGUR -</div>', unsafe_allow_html=True)
+                with fvalue:
+                    if st.button(str(tidak_dilaksanakan), key="focus_btn_gugur_status"):
+                        st.session_state.selected_traffic = "Gugur"
                         st.rerun()
 
-        for sep_col in [q_sep1, q_sep2, q_sep3]:
-            with sep_col:
-                st.markdown(
-                    '<div class="status-separator-text">|</div>',
-                    unsafe_allow_html=True
+            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with focus_right:
+            st.markdown('<div class="summary-panel">', unsafe_allow_html=True)
+            if st.button(f"{jumlah_program_panel:,.0f}", key="focus_btn_jumlah_program"):
+                st.session_state.selected_traffic = "Semua"
+                st.rerun()
+            st.markdown(
+                f"""
+                    <div class="summary-label">Jumlah Program</div>
+                    <div class="summary-line"></div>
+                    <div class="summary-row">SASARAN <span>{sasaran_panel:.2f}%</span></div>
+                    <div class="summary-row">PRESTASI <span>{prestasi_panel:.2f}%</span></div>
+                    <div class="summary-line"></div>
+                    <div class="summary-achievement">PENCAPAIAN {pencapaian_panel:.2f}%</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+    elif st.session_state.focus_page == "report":
+        tab_senarai_focus, tab_summary_focus = st.tabs([
+            "📋 SENARAI STATUS PRESTASI",
+            "📑 SUMMARY PROGRAM MENGIKUT BAHAGIAN"
+        ])
+
+        with tab_senarai_focus:
+            selected = st.session_state.selected_traffic
+            if selected == "Semua":
+                render_selected_list(filtered_df, sektor_col, bahagian_col, program_col, pencapaian_col, "Semua")
+            elif selected == "Hijau":
+                render_selected_list(df_hijau, sektor_col, bahagian_col, program_col, pencapaian_col, "Hijau")
+            elif selected == "Kuning":
+                render_selected_list(df_kuning, sektor_col, bahagian_col, program_col, pencapaian_col, "Kuning")
+            elif selected == "Merah":
+                render_selected_list(df_merah, sektor_col, bahagian_col, program_col, pencapaian_col, "Merah")
+            elif selected in ["Bermula Q2", "Q2"]:
+                render_selected_list(df_bermula_q2_filtered, sektor_col, bahagian_col, program_col, pencapaian_col, "Q2")
+            elif selected in ["Bermula Q3", "Q3"]:
+                render_selected_list(df_bermula_q3_filtered, sektor_col, bahagian_col, program_col, pencapaian_col, "Q3")
+            elif selected in ["Bermula Q4", "Q4"]:
+                render_selected_list(df_bermula_q4_filtered, sektor_col, bahagian_col, program_col, pencapaian_col, "Q4")
+            elif selected == "Gugur":
+                render_selected_list(df_tidak_filtered, sektor_col, bahagian_col, program_col, pencapaian_col, "Gugur")
+            else:
+                st.info("Klik Jumlah Program, bulatan Traffic Light, atau nilai Q2/Q3/Q4/Gugur untuk lihat senarai.")
+
+        with tab_summary_focus:
+            st.markdown("### SUMMARY PROGRAM MENGIKUT BAHAGIAN")
+            st.caption("Ringkasan ini berubah mengikut filter Sektor, Bahagian dan Kod Program.")
+            summary_df_focus = build_summary_program_bahagian(filtered_df, bahagian_col)
+            if summary_df_focus.empty:
+                st.warning("Tiada data untuk dipaparkan dalam summary.")
+            else:
+                summary_display_focus = summary_df_focus.rename(columns={
+                    "Hijau": "🟢 HIJAU", "Kuning": "🟡 KUNING", "Merah": "🔴 MERAH",
+                    "Q2": "Q2", "Q3": "Q3", "Q4": "Q4", "Gugur": "GUGUR",
+                    "JUMLAH": "JUMLAH PROGRAM"
+                })
+                numeric_cols_focus = ["🟢 HIJAU", "🟡 KUNING", "🔴 MERAH", "Q2", "Q3", "Q4", "GUGUR", "JUMLAH PROGRAM"]
+                for col in numeric_cols_focus:
+                    if col in summary_display_focus.columns:
+                        summary_display_focus[col] = pd.to_numeric(summary_display_focus[col], errors="coerce").fillna(0).astype(int)
+                st.dataframe(
+                    summary_display_focus.style.apply(highlight_summary_table, axis=1).format({
+                        col: "{:,.0f}" for col in numeric_cols_focus if col in summary_display_focus.columns
+                    }),
+                    use_container_width=True,
+                    hide_index=True,
+                    height=min(720, 80 + (len(summary_display_focus) * 35))
                 )
 
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.stop()
 
-    with main_right:
-        st.markdown('<div class="summary-panel">', unsafe_allow_html=True)
-        if st.button(
-            f"{jumlah_program_panel:,.0f}",
-            key=f"btn_jumlah_program_{'focus' if focus else 'main'}"
-        ):
-            st.session_state.selected_traffic = "Semua"
-            st.session_state.pop("selected_chart_bahagian", None)
-            st.rerun()
+traffic_focus_spacer, traffic_focus_btn = st.columns([18, 1])
+with traffic_focus_btn:
+    if st.button("⛶", key="btn_buka_traffic_focus", help="Buka paparan besar Traffic Light", use_container_width=True):
+        st.session_state.focus_page = "traffic"
+        st.rerun()
 
+main_left, main_right = st.columns([3.0, 1.05], gap="medium")
+
+with main_left:
+    st.markdown('<div class="traffic-container">', unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
         st.markdown(
-            f"""
-                <div class="summary-label">Jumlah Program</div>
-                <div class="summary-line"></div>
-                <div class="summary-row">SASARAN <span>{sasaran_panel:.2f}%</span></div>
-                <div class="summary-row">PRESTASI <span>{prestasi_panel:.2f}%</span></div>
-                <div class="summary-line"></div>
-                <div class="summary-achievement">PENCAPAIAN {pencapaian_panel:.2f}%</div>
+            """
+            <div class="static-traffic-card">
+                <div class="static-range">≥ 85%</div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
+        if st.button(f"{hijau}", key="btn_hijau_value"):
+            st.session_state.selected_traffic = "Hijau"
+            if "selected_chart_bahagian" in st.session_state:
+                st.session_state.selected_chart_bahagian = None
+            st.rerun()
 
-def render_chart_panel(focus=False):
-    if chart_filtered_df.empty:
-        st.warning("Tiada data carta untuk status yang dipilih.")
-        return
-
-    chart_height = None
-    chart_key = "bahagian_chart_main"
-    if focus:
-        chart_height = max(760, chart_filtered_df[bahagian_col].nunique() * 58)
-        chart_key = "bahagian_chart_focus"
-
-    fig = build_bahagian_chart(
-        chart_filtered_df,
-        bahagian_col,
-        chart_height=chart_height
-    )
-
-    if focus:
-        fig.update_layout(
-            margin=dict(l=20, r=25, t=65, b=35),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)"
+    with c2:
+        st.markdown(
+            """
+            <div class="static-traffic-card">
+                <div class="static-range">60% - 84.99%</div>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
+        if st.button(f"{kuning}", key="btn_kuning_value"):
+            st.session_state.selected_traffic = "Kuning"
+            if "selected_chart_bahagian" in st.session_state:
+                st.session_state.selected_chart_bahagian = None
+            st.rerun()
+
+    with c3:
+        st.markdown(
+            """
+            <div class="static-traffic-card">
+                <div class="static-range">< 60%</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if st.button(f"{merah}", key="btn_merah_value"):
+            st.session_state.selected_traffic = "Merah"
+            if "selected_chart_bahagian" in st.session_state:
+                st.session_state.selected_chart_bahagian = None
+            st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Baris khas: Q2 / Q3 / Q4 / TIDAK DILAKSANAKAN
+    st.markdown("<div style='margin-top:22px; margin-bottom:10px;'>", unsafe_allow_html=True)
+    q_col1, q_sep1, q_col2, q_sep2, q_col3, q_sep3, q_col4 = st.columns([1.45, 0.12, 1.45, 0.12, 1.45, 0.12, 3.25])
+
+    with q_col1:
+        q2_label, q2_value = st.columns([2.5, 1])
+        with q2_label:
+            st.markdown('<div class="status-label-text">Q2 -</div>', unsafe_allow_html=True)
+        with q2_value:
+            if st.button(str(bermula_q2), key="btn_q2_status"):
+                st.session_state.selected_traffic = "Q2"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
+
+    with q_sep1:
+        st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+    with q_col2:
+        q3_label, q3_value = st.columns([2.5, 1])
+        with q3_label:
+            st.markdown('<div class="status-label-text">Q3 -</div>', unsafe_allow_html=True)
+        with q3_value:
+            if st.button(str(bermula_q3), key="btn_q3_status"):
+                st.session_state.selected_traffic = "Q3"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
+
+    with q_sep2:
+        st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+    with q_col3:
+        q4_label, q4_value = st.columns([2.5, 1])
+        with q4_label:
+            st.markdown('<div class="status-label-text">Q4 -</div>', unsafe_allow_html=True)
+        with q4_value:
+            if st.button(str(bermula_q4), key="btn_q4_status"):
+                st.session_state.selected_traffic = "Q4"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
+
+    with q_sep3:
+        st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+    with q_col4:
+        tidak_label, tidak_value = st.columns([6.5, 1])
+        with tidak_label:
+            st.markdown('<div class="status-label-text">GUGUR -</div>', unsafe_allow_html=True)
+        with tidak_value:
+            if st.button(str(tidak_dilaksanakan), key="btn_tidak_status"):
+                st.session_state.selected_traffic = "Gugur"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with main_right:
+    st.markdown('<div class="summary-panel">', unsafe_allow_html=True)
+
+    if st.button(f"{jumlah_program_panel:,.0f}", key="btn_jumlah_program"):
+        st.session_state.selected_traffic = "Semua"
+        if "selected_chart_bahagian" in st.session_state:
+            st.session_state.selected_chart_bahagian = None
+        st.rerun()
+
+    st.markdown(
+        f"""
+            <div class="summary-label">Jumlah Program</div>
+            <div class="summary-line"></div>
+            <div class="summary-row">SASARAN <span>{sasaran_panel:.2f}%</span></div>
+            <div class="summary-row">PRESTASI <span>{prestasi_panel:.2f}%</span></div>
+            <div class="summary-line"></div>
+            <div class="summary-achievement">PENCAPAIAN {pencapaian_panel:.2f}%</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+st.divider()
+
+
+# =====================================================
+# CARTA MENGIKUT BAHAGIAN
+# Ikon kecil di sebelah tajuk membuka Paparan Carta Besar.
+# Dalam mod tersebut, sidebar kekal kelihatan dan filter masih aktif.
+# =====================================================
+chart_title_col, chart_expand_col = st.columns([18, 1])
+
+with chart_title_col:
+    st.markdown("### 📊 PENCAPAIAN MENGIKUT BAHAGIAN")
+
+with chart_expand_col:
+    if st.button(
+        "⛶",
+        key="btn_buka_paparan_carta_besar",
+        help="Buka Paparan Carta Besar dengan sidebar",
+        use_container_width=True
+    ):
+        st.session_state.focus_page = "chart"
+        st.rerun()
+
+if chart_filtered_df.empty:
+    st.warning("Tiada data carta untuk status yang dipilih.")
+else:
+    fig_bahagian_stack = build_bahagian_chart(
+        chart_filtered_df,
+        bahagian_col
+    )
+
     st.plotly_chart(
-        fig,
+        fig_bahagian_stack,
         use_container_width=True,
-        key=chart_key,
+        key="bahagian_chart_main",
         config={
             "displaylogo": False,
             "responsive": True,
@@ -2754,58 +2944,128 @@ def render_chart_panel(focus=False):
         }
     )
 
+st.divider()
 
-def render_report_panel(focus=False):
-    tab_senarai, tab_summary = st.tabs([
-        "📋 SENARAI STATUS PRESTASI",
-        "📑 SUMMARY PROGRAM MENGIKUT BAHAGIAN"
-    ])
+# =====================================================
+# LAPORAN STATUS PRESTASI - PAPARAN TERUS SEPERTI E-FILING
+# Dataframe masih menggunakan ikon fullscreen asal Streamlit.
+# =====================================================
+report_title_col, report_expand_col = st.columns([18, 1])
+with report_title_col:
+    st.markdown("### 📋 LAPORAN STATUS PRESTASI")
+with report_expand_col:
+    if st.button("⛶", key="btn_buka_report_focus", help="Buka paparan besar Laporan", use_container_width=True):
+        st.session_state.focus_page = "report"
+        st.rerun()
 
-    with tab_senarai:
-        selected = st.session_state.selected_traffic
+tab_senarai, tab_summary = st.tabs([
+    "📋 SENARAI STATUS PRESTASI",
+    "📑 SUMMARY PROGRAM MENGIKUT BAHAGIAN"
+])
 
-        report_map = {
-            "Semua": (filtered_df, "Semua"),
-            "Hijau": (df_hijau, "Hijau"),
-            "Kuning": (df_kuning, "Kuning"),
-            "Merah": (df_merah, "Merah"),
-            "Bermula Q2": (df_bermula_q2_filtered, "Q2"),
-            "Q2": (df_bermula_q2_filtered, "Q2"),
-            "Bermula Q3": (df_bermula_q3_filtered, "Q3"),
-            "Q3": (df_bermula_q3_filtered, "Q3"),
-            "Bermula Q4": (df_bermula_q4_filtered, "Q4"),
-            "Q4": (df_bermula_q4_filtered, "Q4"),
-            "Gugur": (df_tidak_filtered, "Gugur"),
-        }
+with tab_senarai:
+    selected = st.session_state.selected_traffic
 
-        if selected in report_map:
-            report_df, report_title = report_map[selected]
-            render_selected_list(
-                report_df,
-                sektor_col,
-                bahagian_col,
-                program_col,
-                pencapaian_col,
-                report_title
-            )
-        else:
-            st.info(
-                "Klik Jumlah Program, bulatan Traffic Light, atau nilai "
-                "Q2/Q3/Q4/Gugur untuk melihat senarai."
-            )
-
-    with tab_summary:
-        st.markdown("### SUMMARY PROGRAM MENGIKUT BAHAGIAN")
-        st.caption(
-            "Ringkasan ini berubah mengikut filter Sektor, Bahagian dan Kod Program."
+    if selected == "Semua":
+        render_selected_list(
+            filtered_df,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Semua"
         )
 
-        summary_df = build_summary_program_bahagian(filtered_df, bahagian_col)
+    elif selected == "Hijau":
+        render_selected_list(
+            df_hijau,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Hijau"
+        )
 
-        if summary_df.empty:
-            st.warning("Tiada data untuk dipaparkan dalam summary.")
-            return
+    elif selected == "Kuning":
+        render_selected_list(
+            df_kuning,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Kuning"
+        )
 
+    elif selected == "Merah":
+        render_selected_list(
+            df_merah,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Merah"
+        )
+
+    elif selected in ["Bermula Q2", "Q2"]:
+        render_selected_list(
+            df_bermula_q2_filtered,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Q2"
+        )
+
+    elif selected in ["Bermula Q3", "Q3"]:
+        render_selected_list(
+            df_bermula_q3_filtered,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Q3"
+        )
+
+    elif selected in ["Bermula Q4", "Q4"]:
+        render_selected_list(
+            df_bermula_q4_filtered,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Q4"
+        )
+
+    elif selected == "Gugur":
+        render_selected_list(
+            df_tidak_filtered,
+            sektor_col,
+            bahagian_col,
+            program_col,
+            pencapaian_col,
+            "Gugur"
+        )
+
+    else:
+        st.info(
+            "Klik Jumlah Program, bulatan Traffic Light, atau nilai "
+            "Q2/Q3/Q4/Gugur untuk lihat senarai."
+        )
+
+with tab_summary:
+    st.markdown("### SUMMARY PROGRAM MENGIKUT BAHAGIAN")
+    st.caption(
+        "Ringkasan ini berubah mengikut filter Sektor, Bahagian dan Kod Program."
+    )
+
+    summary_df = build_summary_program_bahagian(
+        filtered_df,
+        bahagian_col
+    )
+
+    if summary_df.empty:
+        st.warning("Tiada data untuk dipaparkan dalam summary.")
+    else:
         summary_display = summary_df.rename(columns={
             "Hijau": "🟢 HIJAU",
             "Kuning": "🟡 KUNING",
@@ -2836,8 +3096,6 @@ def render_report_panel(focus=False):
                     .astype(int)
                 )
 
-        table_height = min(900 if focus else 720, 80 + (len(summary_display) * 35))
-
         st.dataframe(
             summary_display.style.apply(
                 highlight_summary_table,
@@ -2849,82 +3107,18 @@ def render_report_panel(focus=False):
             }),
             use_container_width=True,
             hide_index=True,
-            height=table_height
+            height=min(720, 80 + (len(summary_display) * 35))
         )
 
-        summary_csv = summary_display.to_csv(index=False).encode("utf-8-sig")
+        summary_csv = summary_display.to_csv(
+            index=False
+        ).encode("utf-8-sig")
+
         st.download_button(
             label="⬇️ Download Summary Program Mengikut Bahagian",
             data=summary_csv,
             file_name="summary_program_mengikut_bahagian.csv",
             mime="text/csv",
             use_container_width=True,
-            key=f"download_summary_bahagian_{'focus' if focus else 'main'}"
+            key="download_summary_bahagian_btn"
         )
-
-
-# =====================================================
-# PAPARAN FOCUS MODE
-# =====================================================
-if st.session_state.focus_mode in FOCUS_PAGES:
-    render_focus_navigation()
-
-    if st.session_state.focus_mode == "traffic":
-        render_traffic_panel(focus=True)
-    elif st.session_state.focus_mode == "chart":
-        render_chart_panel(focus=True)
-    elif st.session_state.focus_mode == "report":
-        render_report_panel(focus=True)
-
-    st.stop()
-
-
-# =====================================================
-# PAPARAN UTAMA DASHBOARD
-# =====================================================
-traffic_title_col, traffic_expand_col = st.columns([18, 1])
-with traffic_title_col:
-    st.markdown("### 🚦 TRAFFIC LIGHT")
-with traffic_expand_col:
-    if st.button(
-        "⛶",
-        key="btn_open_traffic_focus",
-        help="Buka Traffic Light dengan sidebar",
-        use_container_width=True
-    ):
-        open_focus("traffic")
-        st.rerun()
-
-render_traffic_panel(focus=False)
-st.divider()
-
-chart_title_col, chart_expand_col = st.columns([18, 1])
-with chart_title_col:
-    st.markdown("### 📊 PENCAPAIAN MENGIKUT BAHAGIAN")
-with chart_expand_col:
-    if st.button(
-        "⛶",
-        key="btn_open_chart_focus",
-        help="Buka Carta dengan sidebar",
-        use_container_width=True
-    ):
-        open_focus("chart")
-        st.rerun()
-
-render_chart_panel(focus=False)
-st.divider()
-
-report_title_col, report_expand_col = st.columns([18, 1])
-with report_title_col:
-    st.markdown("### 📋 LAPORAN STATUS PRESTASI")
-with report_expand_col:
-    if st.button(
-        "⛶",
-        key="btn_open_report_focus",
-        help="Buka Laporan dengan sidebar",
-        use_container_width=True
-    ):
-        open_focus("report")
-        st.rerun()
-
-render_report_panel(focus=False)
