@@ -1959,6 +1959,73 @@ def render_selected_list(df_list, sektor_col, bahagian_col, program_col, pencapa
 
 
 
+def build_summary_program_bahagian(source_df, bahagian_col):
+    """Bina ringkasan bilangan program mengikut bahagian dan status."""
+    if source_df.empty:
+        return pd.DataFrame()
+
+    summary = (
+        source_df
+        .groupby([bahagian_col, "KATEGORI_TRAFFIC"], dropna=False)
+        .size()
+        .unstack(fill_value=0)
+        .reset_index()
+    )
+
+    status_columns = [
+        "Hijau",
+        "Kuning",
+        "Merah",
+        "Q2",
+        "Q3",
+        "Q4",
+        "Tidak Dilaksanakan"
+    ]
+
+    for col in status_columns:
+        if col not in summary.columns:
+            summary[col] = 0
+
+    summary = summary[[bahagian_col] + status_columns].copy()
+    summary = summary.rename(columns={bahagian_col: "BAHAGIAN"})
+
+    summary["JUMLAH"] = summary[status_columns].sum(axis=1)
+
+    total_row = {
+        "BAHAGIAN": "JUMLAH KESELURUHAN",
+        "Hijau": int(summary["Hijau"].sum()),
+        "Kuning": int(summary["Kuning"].sum()),
+        "Merah": int(summary["Merah"].sum()),
+        "Q2": int(summary["Q2"].sum()),
+        "Q3": int(summary["Q3"].sum()),
+        "Q4": int(summary["Q4"].sum()),
+        "Tidak Dilaksanakan": int(summary["Tidak Dilaksanakan"].sum()),
+        "JUMLAH": int(summary["JUMLAH"].sum()),
+    }
+
+    summary = summary.sort_values(
+        by=["JUMLAH", "BAHAGIAN"],
+        ascending=[False, True]
+    ).reset_index(drop=True)
+
+    summary = pd.concat(
+        [summary, pd.DataFrame([total_row])],
+        ignore_index=True
+    )
+
+    return summary
+
+
+def highlight_summary_table(row):
+    """Warnakan baris jumlah keseluruhan dalam jadual ringkasan."""
+    if str(row.get("BAHAGIAN", "")) == "JUMLAH KESELURUHAN":
+        return [
+            "background-color: #dbeafe; font-weight: 900; color: #0f172a"
+        ] * len(row)
+
+    return [""] * len(row)
+
+
 def build_bahagian_chart(filtered_df, bahagian_col, chart_height=None):
     """
     Bina carta stacked bar mengikut bahagian.
@@ -2846,98 +2913,182 @@ with st.expander("📊 PENCAPAIAN MENGIKUT BAHAGIAN", expanded=st.session_state.
 
 
 # =====================================================
-# ACCORDION 2 - SENARAI APABILA KLIK TRAFFIC LIGHT
+# ACCORDION 2 - SENARAI STATUS + SUMMARY PROGRAM
 # =====================================================
-with st.expander("📋 SENARAI STATUS PRESTASI", expanded=False):
+with st.expander("📋 LAPORAN STATUS PRESTASI", expanded=False):
 
-    list_btn_col1, list_btn_col2 = st.columns([0.78, 0.22])
+    tab_senarai, tab_summary = st.tabs([
+        "📋 SENARAI STATUS PRESTASI",
+        "📑 SUMMARY PROGRAM MENGIKUT BAHAGIAN"
+    ])
 
-    with list_btn_col2:
-        if st.button("🖥️ Full Screen Senarai", use_container_width=True):
-            st.session_state.fullscreen_list = True
-            st.rerun()
+    with tab_senarai:
+        list_btn_col1, list_btn_col2 = st.columns([0.78, 0.22])
 
-    selected = st.session_state.selected_traffic
+        with list_btn_col2:
+            if st.button(
+                "🖥️ Full Screen Senarai",
+                use_container_width=True,
+                key="fullscreen_list_tab_btn"
+            ):
+                st.session_state.fullscreen_list = True
+                st.rerun()
 
-    if selected == "Semua":
-        render_selected_list(
+        selected = st.session_state.selected_traffic
+
+        if selected == "Semua":
+            render_selected_list(
+                filtered_df,
+                sektor_col,
+                bahagian_col,
+                program_col,
+                pencapaian_col,
+                "Semua"
+            )
+
+        elif selected == "Hijau":
+            render_selected_list(
+                df_hijau,
+                sektor_col,
+                bahagian_col,
+                program_col,
+                pencapaian_col,
+                "Hijau"
+            )
+
+        elif selected == "Kuning":
+            render_selected_list(
+                df_kuning,
+                sektor_col,
+                bahagian_col,
+                program_col,
+                pencapaian_col,
+                "Kuning"
+            )
+
+        elif selected == "Merah":
+            render_selected_list(
+                df_merah,
+                sektor_col,
+                bahagian_col,
+                program_col,
+                pencapaian_col,
+                "Merah"
+            )
+
+        elif selected in ["Bermula Q2", "Q2"]:
+            render_selected_list(
+                df_bermula_q2_filtered,
+                sektor_col,
+                bahagian_col,
+                program_col,
+                pencapaian_col,
+                "Q2"
+            )
+
+        elif selected in ["Bermula Q3", "Q3"]:
+            render_selected_list(
+                df_bermula_q3_filtered,
+                sektor_col,
+                bahagian_col,
+                program_col,
+                pencapaian_col,
+                "Q3"
+            )
+
+        elif selected in ["Bermula Q4", "Q4"]:
+            render_selected_list(
+                df_bermula_q4_filtered,
+                sektor_col,
+                bahagian_col,
+                program_col,
+                pencapaian_col,
+                "Q4"
+            )
+
+        elif selected == "Tidak Dilaksanakan":
+            render_selected_list(
+                df_tidak_filtered,
+                sektor_col,
+                bahagian_col,
+                program_col,
+                pencapaian_col,
+                "Tidak Dilaksanakan"
+            )
+
+        else:
+            st.info(
+                "Klik Jumlah Program, bulatan Traffic Light, atau nilai "
+                "Q2/Q3/Q4/Tidak Dilaksanakan untuk lihat senarai."
+            )
+
+    with tab_summary:
+        st.markdown("### SUMMARY PROGRAM MENGIKUT BAHAGIAN")
+        st.caption(
+            "Ringkasan ini berubah mengikut filter Sektor, Bahagian dan Kod Program."
+        )
+
+        summary_df = build_summary_program_bahagian(
             filtered_df,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Semua"
+            bahagian_col
         )
 
-    elif selected == "Hijau":
-        render_selected_list(
-            df_hijau,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Hijau"
-        )
+        if summary_df.empty:
+            st.warning("Tiada data untuk dipaparkan dalam summary.")
+        else:
+            summary_display = summary_df.rename(columns={
+                "Hijau": "🟢 HIJAU",
+                "Kuning": "🟡 KUNING",
+                "Merah": "🔴 MERAH",
+                "Q2": "Q2",
+                "Q3": "Q3",
+                "Q4": "Q4",
+                "Tidak Dilaksanakan": "TIDAK DILAKSANAKAN",
+                "JUMLAH": "JUMLAH PROGRAM"
+            })
 
-    elif selected == "Kuning":
-        render_selected_list(
-            df_kuning,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Kuning"
-        )
+            numeric_cols = [
+                "🟢 HIJAU",
+                "🟡 KUNING",
+                "🔴 MERAH",
+                "Q2",
+                "Q3",
+                "Q4",
+                "TIDAK DILAKSANAKAN",
+                "JUMLAH PROGRAM"
+            ]
 
-    elif selected == "Merah":
-        render_selected_list(
-            df_merah,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Merah"
-        )
+            for col in numeric_cols:
+                if col in summary_display.columns:
+                    summary_display[col] = (
+                        pd.to_numeric(summary_display[col], errors="coerce")
+                        .fillna(0)
+                        .astype(int)
+                    )
 
-    elif selected in ["Bermula Q2", "Q2"]:
-        render_selected_list(
-            df_bermula_q2_filtered,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Q2"
-        )
+            st.dataframe(
+                summary_display.style.apply(
+                    highlight_summary_table,
+                    axis=1
+                ).format({
+                    col: "{:,.0f}"
+                    for col in numeric_cols
+                    if col in summary_display.columns
+                }),
+                use_container_width=True,
+                hide_index=True,
+                height=min(720, 80 + (len(summary_display) * 35))
+            )
 
-    elif selected in ["Bermula Q3", "Q3"]:
-        render_selected_list(
-            df_bermula_q3_filtered,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Q3"
-        )
+            summary_csv = summary_display.to_csv(
+                index=False
+            ).encode("utf-8-sig")
 
-    elif selected in ["Bermula Q4", "Q4"]:
-        render_selected_list(
-            df_bermula_q4_filtered,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Q4"
-        )
-
-    elif selected == "Tidak Dilaksanakan":
-        render_selected_list(
-            df_tidak_filtered,
-            sektor_col,
-            bahagian_col,
-            program_col,
-            pencapaian_col,
-            "Tidak Dilaksanakan"
-        )
-
-    else:
-        st.info("Klik Jumlah Program, bulatan Traffic Light, atau nilai Q2/Q3/Q4/Tidak Dilaksanakan untuk lihat senarai.")
+            st.download_button(
+                label="⬇️ Download Summary Program Mengikut Bahagian",
+                data=summary_csv,
+                file_name="summary_program_mengikut_bahagian.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_summary_bahagian_btn"
+            )
