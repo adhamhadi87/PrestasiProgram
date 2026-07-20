@@ -2141,6 +2141,9 @@ def render_selected_list(df_list, sektor_col, bahagian_col, program_col, pencapa
         sektor_col,
         bahagian_col,
         program_col,
+        "JENIS_PROGRAM",
+        "BIL_PROGRAM_ASAL_NUM",
+        "BIL_PROGRAM_DITAMBAH_NUM",
         pencapaian_fizikal_col,
         weightage_col,
         pencapaian_col,
@@ -2155,10 +2158,11 @@ def render_selected_list(df_list, sektor_col, bahagian_col, program_col, pencapa
 
     display_df = df_list[display_cols].copy()
 
-    if "KPI_PENCAPAIAN_NUM" in display_df.columns:
-        display_df = display_df.rename(
-            columns={"KPI_PENCAPAIAN_NUM": "PENCAPAIAN KPI (%)"}
-        )
+    display_df = display_df.rename(columns={
+        "BIL_PROGRAM_ASAL_NUM": "BIL. PROGRAM ASAL",
+        "BIL_PROGRAM_DITAMBAH_NUM": "BIL. PROGRAM DITAMBAH",
+        "KPI_PENCAPAIAN_NUM": "PENCAPAIAN KPI (%)"
+    })
 
     st.dataframe(
         display_df.style.apply(highlight_traffic_light, axis=1),
@@ -2185,8 +2189,8 @@ def build_summary_program_bahagian(source_df, bahagian_col):
 
     summary = (
         source_df
-        .groupby([bahagian_col, "KATEGORI_TRAFFIC"], dropna=False)
-        .size()
+        .groupby([bahagian_col, "KATEGORI_TRAFFIC"], dropna=False)["JUMLAH_PROGRAM_NUM"]
+        .sum()
         .unstack(fill_value=0)
         .reset_index()
     )
@@ -2252,9 +2256,9 @@ def build_bahagian_chart(filtered_df, bahagian_col, chart_height=None):
     """
     bahagian_status = (
         filtered_df
-        .groupby([bahagian_col, "KATEGORI_TRAFFIC"], as_index=False)
-        .size()
-        .rename(columns={"size": "JUMLAH"})
+        .groupby([bahagian_col, "KATEGORI_TRAFFIC"], as_index=False)["JUMLAH_PROGRAM_NUM"]
+        .sum()
+        .rename(columns={"JUMLAH_PROGRAM_NUM": "JUMLAH"})
     )
 
     status_order = ["Hijau", "Kuning", "Merah", "Q2", "Q3", "Q4", "Gugur"]
@@ -2443,6 +2447,20 @@ if sektor_col is None or bahagian_col is None:
 if program_col is None:
     program_col = df.columns[0]
 
+# Kolum bilangan program. Q2 mempunyai program asal, program tambahan dan program gugur.
+bil_program_col = find_col_exact(df, [
+    "BIL. PROGRAM",
+    "BIL PROGRAM"
+])
+program_ditambah_col = find_col_exact(df, [
+    "BIL. PROGRAM DITAMBAH",
+    "BIL PROGRAM DITAMBAH"
+])
+program_gugur_col = find_col_exact(df, [
+    "BIL. PROGRAM GUGUR",
+    "BIL PROGRAM GUGUR"
+])
+
 if ACTIVE_QUARTER == "Q1":
     weightage_col = find_col_exact(df, [
         "PERATUS SASARAN (WEIGHTAGE) Q1",
@@ -2487,6 +2505,38 @@ df[bahagian_col] = df[bahagian_col].astype("string").str.strip()
 df[program_col] = df[program_col].astype("string").str.strip()
 
 df["STATUS_KHAS"] = df.apply(detect_status_khas, axis=1)
+
+# =====================================================
+# BILANGAN PROGRAM SEBENAR
+# =====================================================
+# Jangan gunakan len(df) semata-mata kerana Q2 mempunyai program tambahan
+# yang direkodkan dalam kolum Bil. Program DiTambah.
+if bil_program_col is not None:
+    df["BIL_PROGRAM_ASAL_NUM"] = to_number(df[bil_program_col]).fillna(0)
+else:
+    df["BIL_PROGRAM_ASAL_NUM"] = 0
+
+if program_ditambah_col is not None:
+    df["BIL_PROGRAM_DITAMBAH_NUM"] = to_number(df[program_ditambah_col]).fillna(0)
+else:
+    df["BIL_PROGRAM_DITAMBAH_NUM"] = 0
+
+if program_gugur_col is not None:
+    df["BIL_PROGRAM_GUGUR_NUM"] = to_number(df[program_gugur_col]).fillna(0)
+else:
+    df["BIL_PROGRAM_GUGUR_NUM"] = 0
+
+df["JUMLAH_PROGRAM_NUM"] = (
+    df["BIL_PROGRAM_ASAL_NUM"]
+    + df["BIL_PROGRAM_DITAMBAH_NUM"]
+)
+
+# Fallback untuk fail lama yang tiada kolum bilangan program.
+df.loc[df["JUMLAH_PROGRAM_NUM"] <= 0, "JUMLAH_PROGRAM_NUM"] = 1
+
+df["JENIS_PROGRAM"] = "PROGRAM ASAL"
+df.loc[df["BIL_PROGRAM_DITAMBAH_NUM"] > 0, "JENIS_PROGRAM"] = "PROGRAM TAMBAHAN Q2"
+df.loc[df["BIL_PROGRAM_GUGUR_NUM"] > 0, "JENIS_PROGRAM"] = "PROGRAM GUGUR"
 
 df["WEIGHTAGE_L_NUM"] = to_number(df[weightage_col])
 df["PENCAPAIAN_M_NUM"] = to_number(df[pencapaian_col])
@@ -2711,13 +2761,13 @@ df_bermula_q3_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "BERMULA Q3"]
 df_bermula_q4_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "BERMULA Q4"].copy()
 df_tidak_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "TIDAK DILAKSANAKAN"].copy()
 
-hijau = len(df_hijau)
-kuning = len(df_kuning)
-merah = len(df_merah)
-bermula_q2 = len(df_bermula_q2_filtered)
-bermula_q3 = len(df_bermula_q3_filtered)
-bermula_q4 = len(df_bermula_q4_filtered)
-tidak_dilaksanakan = len(df_tidak_filtered)
+hijau = int(df_hijau["JUMLAH_PROGRAM_NUM"].sum())
+kuning = int(df_kuning["JUMLAH_PROGRAM_NUM"].sum())
+merah = int(df_merah["JUMLAH_PROGRAM_NUM"].sum())
+bermula_q2 = int(df_bermula_q2_filtered["JUMLAH_PROGRAM_NUM"].sum())
+bermula_q3 = int(df_bermula_q3_filtered["JUMLAH_PROGRAM_NUM"].sum())
+bermula_q4 = int(df_bermula_q4_filtered["JUMLAH_PROGRAM_NUM"].sum())
+tidak_dilaksanakan = int(df_tidak_filtered["JUMLAH_PROGRAM_NUM"].sum())
 
 # Panel ringkasan:
 # BACA PADA SHEET DATA DASHBOARD SAHAJA.
@@ -2737,7 +2787,7 @@ tidak_dilaksanakan = len(df_tidak_filtered)
 
 panel_df = filtered_df.copy()
 
-jumlah_program_panel = len(panel_df)
+jumlah_program_panel = int(panel_df["JUMLAH_PROGRAM_NUM"].sum())
 
 panel_df["SASARAN_PANEL_NUM"] = (
     panel_df["WEIGHTAGE_L_NUM"]
