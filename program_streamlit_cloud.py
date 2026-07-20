@@ -10,7 +10,7 @@ import hmac
 # PAGE SETUP
 # =====================================================
 st.set_page_config(
-    page_title="Dashboard Status Prestasi Q1 2026",
+    page_title="Dashboard Status Prestasi Fizikal Program CIDB 2026",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -156,14 +156,34 @@ def check_password():
 
 check_password()
 
-SHEET_NAME = " DATA DASHBOARD"
+QUARTER_CONFIG = {
+    "Suku Pertama": {
+        "code": "Q1",
+        "title": "PENCAPAIAN PRESTASI FIZIKAL PROGRAM CIDB SUKU PERTAMA 2026",
+        "sheet_options": [
+            " DATA DASHBOARD",
+            "DATA DASHBOARD",
+            " DATA DASHBOARD Q1",
+            "DATA DASHBOARD Q1"
+        ],
+        "sasaran_panel": 25.00,
+    },
+    "Suku Kedua": {
+        "code": "Q2",
+        "title": "PENCAPAIAN PRESTASI FIZIKAL PROGRAM CIDB SUKU KEDUA 2026",
+        "sheet_options": [
+            "DATA DASHBOARD Q2 CLEAN",
+            " DATA DASHBOARD Q2 CLEAN"
+        ],
+        "sasaran_panel": 50.00,
+    },
+}
 
-SHEET_NAME_OPTIONS = [
-    " DATA DASHBOARD",
-    "DATA DASHBOARD",
-    " DATA DASHBOARD Q1",
-    "DATA DASHBOARD Q1"
-]
+# Nilai ini ditetapkan selepas pengguna memilih tab suku tahun.
+ACTIVE_QUARTER_LABEL = "Suku Pertama"
+ACTIVE_QUARTER = "Q1"
+ACTIVE_SHEET_OPTIONS = QUARTER_CONFIG[ACTIVE_QUARTER_LABEL]["sheet_options"]
+ACTIVE_SASARAN_PANEL = QUARTER_CONFIG[ACTIVE_QUARTER_LABEL]["sasaran_panel"]
 
 # =====================================================
 # LOKASI FAIL EXCEL
@@ -1744,6 +1764,40 @@ st.markdown(
         padding: 0 !important;
     }
 
+
+    /* TAB SUKU PERTAMA / SUKU KEDUA */
+    div[data-testid="stRadio"] > div {
+        display: flex !important;
+        gap: 8px !important;
+        padding: 5px !important;
+        width: fit-content !important;
+        border-radius: 14px !important;
+        background: rgba(226,232,240,0.82) !important;
+        border: 1px solid rgba(148,163,184,0.45) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.85) !important;
+    }
+
+    div[data-testid="stRadio"] label {
+        margin: 0 !important;
+        padding: 8px 18px !important;
+        border-radius: 10px !important;
+        font-weight: 900 !important;
+        cursor: pointer !important;
+    }
+
+    div[data-testid="stRadio"] label:has(input:checked) {
+        background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+        color: #ffffff !important;
+        box-shadow: 0 6px 16px rgba(37,99,235,0.28) !important;
+    }
+
+    div[data-testid="stRadio"] label:has(input:checked) p {
+        color: #ffffff !important;
+    }
+
+    div[data-testid="stRadio"] input {
+        display: none !important;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -1816,19 +1870,20 @@ def to_number(series):
     )
 
 
-def resolve_sheet_name(xls):
-    """Cari nama sheet sebenar secara fleksibel."""
+def resolve_sheet_name(xls, sheet_options=None):
+    """Cari nama sheet sebenar secara fleksibel mengikut suku dipilih."""
     available = list(xls.sheet_names)
+    wanted_sheets = sheet_options or ACTIVE_SHEET_OPTIONS
 
-    for wanted in SHEET_NAME_OPTIONS:
+    for wanted in wanted_sheets:
         for sheet in available:
             if sheet == wanted:
                 return sheet
 
-    for wanted in SHEET_NAME_OPTIONS:
-        wanted_clean = wanted.strip().upper()
+    for wanted in wanted_sheets:
+        wanted_clean = str(wanted).strip().upper()
         for sheet in available:
-            if sheet.strip().upper() == wanted_clean:
+            if str(sheet).strip().upper() == wanted_clean:
                 return sheet
 
     return None
@@ -1856,6 +1911,17 @@ def find_col(df, possible_names):
         for name in possible_names:
             if name.upper() in col_upper:
                 return col
+
+    return None
+
+
+def find_col_exact(df, possible_names):
+    """Cari kolum dengan padanan nama tepat selepas pembersihan teks."""
+    wanted = {clean_upper(name) for name in possible_names}
+
+    for col in df.columns:
+        if clean_upper(col) in wanted:
+            return col
 
     return None
 
@@ -1922,27 +1988,13 @@ def sidebar_pill(label, options, key, n_cols=None, use_expander=False, expanded=
 
 
 def detect_status_khas(row):
-    """
-    Kesan status khas daripada Column K dan fallback untuk rekod yang tiada weightage.
-
-    Logik Q1 2026:
-    - Column K digunakan untuk status khas seperti Q2/Q3/Q4/Tidak dilaksanakan.
-    - Variasi TIDAK DILAKSANAKAN / TIDAK AKAN DILAKSANAKAN / TIDAK DILAKSANA
-      semuanya dikira sebagai TIDAK DILAKSANAKAN.
-    - Jika rekod tiada status, tetapi Weightage L dan % Pencapaian M kosong,
-      rekod tersebut dimasukkan ke Q2 supaya jumlah keseluruhan tetap sama
-      dengan jumlah program sebenar.
-    """
-    try:
-        status_text = row.iloc[STATUS_TEXT_COL_INDEX]
-    except Exception:
-        status_text = ""
-
-    if pd.isna(status_text):
-        status_text = ""
-
-    status_text = clean_upper(status_text)
-    status_text = " ".join(status_text.split())
+    """Kesan status khas mengikut suku tahun yang sedang dipaparkan."""
+    row_texts = [
+        clean_upper(value)
+        for value in row.tolist()
+        if pd.notna(value) and str(value).strip() != ""
+    ]
+    combined_text = " | ".join(row_texts)
 
     tidak_patterns = [
         "TIDAK DILAKSANAKAN",
@@ -1953,40 +2005,60 @@ def detect_status_khas(row):
         "TAK AKAN DILAKSANAKAN",
         "TAK DILAKSANA",
         "TAK AKAN DILAKSANA",
+        "GUGUR",
     ]
 
-    if any(pattern in status_text for pattern in tidak_patterns):
+    # Sheet Q2 mempunyai kolum khusus Bil. Program Gugur.
+    if ACTIVE_QUARTER == "Q2":
+        gugur_col = find_col_exact(
+            pd.DataFrame(columns=row.index),
+            ["BIL. PROGRAM GUGUR", "BIL PROGRAM GUGUR"]
+        )
+        if gugur_col is not None:
+            gugur_value = pd.to_numeric(row.get(gugur_col), errors="coerce")
+            if pd.notna(gugur_value) and gugur_value > 0:
+                return "TIDAK DILAKSANAKAN"
+
+    if any(pattern in combined_text for pattern in tidak_patterns):
         return "TIDAK DILAKSANAKAN"
 
-    if "BERMULA Q2" in status_text or "MULA Q2" in status_text or status_text.strip() == "Q2":
-        return "BERMULA Q2"
+    if ACTIVE_QUARTER == "Q1":
+        try:
+            status_text = clean_upper(row.iloc[STATUS_TEXT_COL_INDEX])
+        except Exception:
+            status_text = ""
 
-    if "BERMULA Q3" in status_text or "MULA Q3" in status_text or status_text.strip() == "Q3":
+        if "BERMULA Q2" in status_text or "MULA Q2" in status_text or status_text == "Q2":
+            return "BERMULA Q2"
+        if "BERMULA Q3" in status_text or "MULA Q3" in status_text or status_text == "Q3":
+            return "BERMULA Q3"
+        if "BERMULA Q4" in status_text or "MULA Q4" in status_text or status_text == "Q4":
+            return "BERMULA Q4"
+
+        try:
+            weightage_value = pd.to_numeric(
+                str(row.get(weightage_col, "")).replace(",", "").replace("%", "").strip(),
+                errors="coerce"
+            )
+            pencapaian_value = pd.to_numeric(
+                str(row.get(pencapaian_col, "")).replace(",", "").replace("%", "").strip(),
+                errors="coerce"
+            )
+        except Exception:
+            weightage_value = pd.NA
+            pencapaian_value = pd.NA
+
+        if pd.isna(weightage_value) and pd.isna(pencapaian_value):
+            return "BERMULA Q2"
+
+        return ""
+
+    # Q2: rekod yang telah bermula pada Q2 dinilai menggunakan nilai kumulatif Q2.
+    # Hanya status masa hadapan Q3/Q4 dikekalkan sebagai status khas.
+    if "BERMULA Q3" in combined_text or "MULA Q3" in combined_text:
         return "BERMULA Q3"
-
-    if "BERMULA Q4" in status_text or "MULA Q4" in status_text or status_text.strip() == "Q4":
+    if "BERMULA Q4" in combined_text or "MULA Q4" in combined_text:
         return "BERMULA Q4"
-
-    # Fallback untuk 4 rekod yang tiada Weightage L dan tiada % Pencapaian M.
-    # Tanpa fallback ini, jumlah detect menjadi 254 walaupun jumlah program 258.
-    try:
-        weightage_value = pd.to_numeric(
-            str(row.iloc[WEIGHTAGE_COL_INDEX]).replace(",", "").replace("%", "").strip(),
-            errors="coerce"
-        )
-    except Exception:
-        weightage_value = pd.NA
-
-    try:
-        pencapaian_value = pd.to_numeric(
-            str(row.iloc[PENCAPAIAN_COL_INDEX]).replace(",", "").replace("%", "").strip(),
-            errors="coerce"
-        )
-    except Exception:
-        pencapaian_value = pd.NA
-
-    if pd.isna(weightage_value) and pd.isna(pencapaian_value):
-        return "BERMULA Q2"
 
     return ""
 
@@ -2028,9 +2100,9 @@ def highlight_traffic_light(row):
 
 
 @st.cache_data
-def load_data(uploaded_file):
+def load_data(uploaded_file, sheet_options):
     xls = pd.ExcelFile(uploaded_file)
-    actual_sheet = resolve_sheet_name(xls)
+    actual_sheet = resolve_sheet_name(xls, sheet_options)
 
     if actual_sheet is None:
         return None, xls.sheet_names, None
@@ -2291,9 +2363,28 @@ def get_chart_source_df(filtered_df):
 
 
 # =====================================================
-# MAIN TITLE
+# TAB SUKU TAHUN + MAIN TITLE
 # =====================================================
-st.title("PENCAPAIAN PRESTASI FIZIKAL PROGRAM CIDB Q1 2026")
+quarter_tab = st.radio(
+    "Pilih Suku Tahun",
+    options=["Suku Pertama", "Suku Kedua"],
+    horizontal=True,
+    label_visibility="collapsed",
+    key="quarter_tab_selector"
+)
+
+ACTIVE_QUARTER_LABEL = quarter_tab
+ACTIVE_QUARTER = QUARTER_CONFIG[quarter_tab]["code"]
+ACTIVE_SHEET_OPTIONS = QUARTER_CONFIG[quarter_tab]["sheet_options"]
+ACTIVE_SASARAN_PANEL = QUARTER_CONFIG[quarter_tab]["sasaran_panel"]
+
+# Bersihkan pilihan status apabila pengguna bertukar suku tahun.
+if st.session_state.get("last_quarter_tab") != ACTIVE_QUARTER:
+    st.session_state["last_quarter_tab"] = ACTIVE_QUARTER
+    st.session_state["selected_traffic"] = None
+    st.session_state["focus_page"] = None
+
+st.title(QUARTER_CONFIG[quarter_tab]["title"])
 
 if not EXCEL_PATH.exists():
     st.sidebar.error("Fail Excel tidak dijumpai.")
@@ -2324,10 +2415,10 @@ uploaded_file = EXCEL_PATH
 # =====================================================
 # LOAD DATA
 # =====================================================
-df, sheet_list, header_row = load_data(uploaded_file)
+df, sheet_list, header_row = load_data(uploaded_file, ACTIVE_SHEET_OPTIONS)
 
 if df is None:
-    st.error("Worksheet **DATA DASHBOARD / DATA DASHBOARD Q1** tidak dijumpai dalam fail Excel.")
+    st.error(f"Worksheet untuk **{quarter_tab}** tidak dijumpai dalam fail Excel.")
     st.write("Worksheet yang tersedia:")
     st.write(sheet_list)
     st.stop()
@@ -2352,15 +2443,40 @@ if sektor_col is None or bahagian_col is None:
 if program_col is None:
     program_col = df.columns[0]
 
-if len(df.columns) <= PENCAPAIAN_COL_INDEX:
-    st.error("Column L atau Column M tidak wujud dalam sheet DATA DASHBOARD selepas header dibaca.")
+if ACTIVE_QUARTER == "Q1":
+    weightage_col = find_col_exact(df, [
+        "PERATUS SASARAN (WEIGHTAGE) Q1",
+        "PERATUS SASARAN WEIGHTAGE Q1"
+    ])
+    pencapaian_col = find_col_exact(df, ["PERATUS PENCAPAIAN Q1"])
+    pencapaian_fizikal_col = find_col_exact(df, ["DATA DARI BAHAGIAN"])
+
+    # Fallback kepada kedudukan asal Q1 jika nama kolum berubah sedikit.
+    if weightage_col is None and len(df.columns) > WEIGHTAGE_COL_INDEX:
+        weightage_col = df.columns[WEIGHTAGE_COL_INDEX]
+    if pencapaian_col is None and len(df.columns) > PENCAPAIAN_COL_INDEX:
+        pencapaian_col = df.columns[PENCAPAIAN_COL_INDEX]
+    if pencapaian_fizikal_col is None and len(df.columns) > PENCAPAIAN_FIZIKAL_COL_INDEX:
+        pencapaian_fizikal_col = df.columns[PENCAPAIAN_FIZIKAL_COL_INDEX]
+else:
+    weightage_col = find_col_exact(df, [
+        "SASARAN Q2 (KUMULATIF)",
+        "SASARAN Q2 KUMULATIF"
+    ])
+    pencapaian_col = find_col_exact(df, [
+        "PENCAPAIAN Q2 (KUMULATIF)",
+        "PENCAPAIAN Q2 KUMULATIF"
+    ])
+    pencapaian_fizikal_col = find_col_exact(df, ["DATA DARI BAHAGIAN Q2"])
+
+if weightage_col is None or pencapaian_col is None:
+    st.error(
+        f"Kolum sasaran atau pencapaian untuk {quarter_tab} tidak dijumpai dalam "
+        f"sheet {resolve_sheet_name(pd.ExcelFile(uploaded_file), ACTIVE_SHEET_OPTIONS)}."
+    )
     st.write("Kolum yang dibaca:")
     st.write(list(df.columns))
     st.stop()
-
-weightage_col = df.columns[WEIGHTAGE_COL_INDEX]
-pencapaian_col = df.columns[PENCAPAIAN_COL_INDEX]
-pencapaian_fizikal_col = df.columns[PENCAPAIAN_FIZIKAL_COL_INDEX] if len(df.columns) > PENCAPAIAN_FIZIKAL_COL_INDEX else None
 
 
 # =====================================================
@@ -2453,7 +2569,7 @@ df_paparan = pd.concat(
 selected_sektor = sidebar_pill(
     "Pilih Sektor",
     df_paparan[sektor_col].dropna().unique(),
-    "filter_sektor",
+    f"filter_sektor_{ACTIVE_QUARTER.lower()}",
     n_cols=1,
     use_expander=True,
     expanded=True
@@ -2467,7 +2583,7 @@ else:
 selected_bahagian = sidebar_pill(
     "Pilih Bahagian",
     filtered_df[bahagian_col].dropna().unique(),
-    "filter_bahagian",
+    f"filter_bahagian_{ACTIVE_QUARTER.lower()}",
     n_cols=2,
     use_expander=True,
     expanded=False
@@ -2506,7 +2622,7 @@ if kod_program_col is not None:
     selected_kod = sidebar_pill(
         "Pilih Kod Program",
         df_paparan["KOD_PROGRAM_SHORT"].dropna().unique(),
-        "filter_kod_program",
+        f"filter_kod_program_{ACTIVE_QUARTER.lower()}",
         n_cols=4,
         use_expander=True,
         expanded=False
@@ -2528,9 +2644,9 @@ if st.sidebar.button(
     use_container_width=True,
     key="reset_filter_btn"
 ):
-    st.session_state["filter_sektor_selected"] = []
-    st.session_state["filter_bahagian_selected"] = []
-    st.session_state["filter_kod_program_selected"] = []
+    st.session_state[f"filter_sektor_{ACTIVE_QUARTER.lower()}_selected"] = []
+    st.session_state[f"filter_bahagian_{ACTIVE_QUARTER.lower()}_selected"] = []
+    st.session_state[f"filter_kod_program_{ACTIVE_QUARTER.lower()}_selected"] = []
 
     if "selected_traffic" in st.session_state:
         st.session_state.selected_traffic = None
@@ -2543,9 +2659,9 @@ if st.sidebar.button(
     key="refresh_excel_btn"
 ):
     st.cache_data.clear()
-    st.session_state["filter_sektor_selected"] = []
-    st.session_state["filter_bahagian_selected"] = []
-    st.session_state["filter_kod_program_selected"] = []
+    st.session_state[f"filter_sektor_{ACTIVE_QUARTER.lower()}_selected"] = []
+    st.session_state[f"filter_bahagian_{ACTIVE_QUARTER.lower()}_selected"] = []
+    st.session_state[f"filter_kod_program_{ACTIVE_QUARTER.lower()}_selected"] = []
 
     if "selected_traffic" in st.session_state:
         st.session_state.selected_traffic = None
@@ -2633,10 +2749,10 @@ panel_df["PRESTASI_PANEL_NUM"] = (
     .clip(lower=0, upper=100)
 )
 
-# Kiraan panel Q1 (formula betul):
+# Kiraan panel mengikut suku dipilih:
 # - Column L = nilai sasaran sebenar setiap program.
 # - Column M = nilai pencapaian/prestasi sebenar setiap program.
-# - Sasaran panel tetap 25%.
+# - Sasaran panel ialah 25% untuk Q1 dan 50% untuk Q2.
 # - Prestasi panel = jumlah Column M / jumlah Column L x 25.
 # - Pencapaian panel = Prestasi / Sasaran x 100.
 # - Hanya rekod yang ada nilai Column L dan Column M dikira.
@@ -2647,7 +2763,7 @@ panel_valid = panel_df[
 ].copy()
 
 if not panel_valid.empty:
-    sasaran_panel = 25.00
+    sasaran_panel = ACTIVE_SASARAN_PANEL
 
     jumlah_l = panel_valid["WEIGHTAGE_L_NUM"].sum()
     jumlah_m = panel_valid["PENCAPAIAN_M_NUM"].sum()
