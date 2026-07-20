@@ -2029,7 +2029,7 @@ def highlight_summary_table(row):
 def build_bahagian_chart(filtered_df, bahagian_col, chart_height=None):
     """
     Bina carta stacked bar mengikut bahagian.
-    Fungsi ini digunakan untuk paparan normal dan paparan fullscreen custom.
+    Fungsi ini digunakan untuk paparan normal dan Paparan Carta Besar.
     """
     bahagian_status = (
         filtered_df
@@ -2534,6 +2534,62 @@ if "selected_traffic" not in st.session_state:
 
 chart_filtered_df = get_chart_source_df(filtered_df)
 
+# =====================================================
+# PAPARAN CARTA BESAR DENGAN SIDEBAR KEKAL KELIHATAN
+# =====================================================
+# Ini bukan fullscreen bawaan Plotly. Ia ialah mod paparan khas Streamlit
+# yang menyembunyikan KPI dan laporan, membesarkan carta, tetapi mengekalkan
+# sidebar supaya filter masih boleh digunakan.
+if "paparan_carta_besar" not in st.session_state:
+    st.session_state.paparan_carta_besar = False
+
+if st.session_state.paparan_carta_besar:
+    tajuk_col, tutup_col = st.columns([12, 1])
+
+    with tajuk_col:
+        st.markdown("## 📊 PENCAPAIAN MENGIKUT BAHAGIAN")
+        st.caption("Paparan carta besar — sidebar dan semua filter kekal aktif.")
+
+    with tutup_col:
+        if st.button(
+            "✕",
+            key="btn_tutup_paparan_carta_besar",
+            help="Kembali ke paparan dashboard",
+            use_container_width=True
+        ):
+            st.session_state.paparan_carta_besar = False
+            st.rerun()
+
+    if chart_filtered_df.empty:
+        st.warning("Tiada data carta untuk status yang dipilih.")
+    else:
+        fig_bahagian_besar = build_bahagian_chart(
+            chart_filtered_df,
+            bahagian_col,
+            chart_height=max(760, chart_filtered_df[bahagian_col].nunique() * 58)
+        )
+
+        fig_bahagian_besar.update_layout(
+            margin=dict(l=20, r=25, t=65, b=35),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+
+        st.plotly_chart(
+            fig_bahagian_besar,
+            use_container_width=True,
+            key="bahagian_chart_large_with_sidebar",
+            config={
+                "displaylogo": False,
+                "responsive": True,
+                "displayModeBar": True
+            }
+        )
+
+    # Hentikan kandungan lain supaya hanya carta besar dipaparkan.
+    # Sidebar tidak dihentikan dan kekal boleh digunakan.
+    st.stop()
+
 main_left, main_right = st.columns([3.0, 1.05], gap="medium")
 
 with main_left:
@@ -2678,10 +2734,24 @@ st.divider()
 
 
 # =====================================================
-# CARTA MENGIKUT BAHAGIAN - PAPARAN TERUS SEPERTI E-FILING
-# Ikon fullscreen asal Streamlit/Plotly digunakan tanpa butang tambahan.
+# CARTA MENGIKUT BAHAGIAN
+# Ikon kecil di sebelah tajuk membuka Paparan Carta Besar.
+# Dalam mod tersebut, sidebar kekal kelihatan dan filter masih aktif.
 # =====================================================
-st.markdown("### 📊 PENCAPAIAN MENGIKUT BAHAGIAN")
+chart_title_col, chart_expand_col = st.columns([18, 1])
+
+with chart_title_col:
+    st.markdown("### 📊 PENCAPAIAN MENGIKUT BAHAGIAN")
+
+with chart_expand_col:
+    if st.button(
+        "⛶",
+        key="btn_buka_paparan_carta_besar",
+        help="Buka Paparan Carta Besar dengan sidebar",
+        use_container_width=True
+    ):
+        st.session_state.paparan_carta_besar = True
+        st.rerun()
 
 if chart_filtered_df.empty:
     st.warning("Tiada data carta untuk status yang dipilih.")
@@ -2706,7 +2776,7 @@ st.divider()
 
 # =====================================================
 # LAPORAN STATUS PRESTASI - PAPARAN TERUS SEPERTI E-FILING
-# Dataframe menggunakan ikon fullscreen asal Streamlit.
+# Dataframe masih menggunakan ikon fullscreen asal Streamlit.
 # =====================================================
 st.markdown("### 📋 LAPORAN STATUS PRESTASI")
 
