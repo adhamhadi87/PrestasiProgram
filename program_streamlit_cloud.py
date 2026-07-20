@@ -2628,10 +2628,12 @@ df_bermula_q3 = df[df["STATUS_KHAS"] == "BERMULA Q3"].copy()
 df_bermula_q4 = df[df["STATUS_KHAS"] == "BERMULA Q4"].copy()
 df_tidak_dilaksanakan = df[df["STATUS_KHAS"] == "TIDAK DILAKSANAKAN"].copy()
 
+# Semua program tanpa status khas mesti kekal dalam paparan.
+# Sebelum ini, program dengan sasaran Q2 kosong atau 0 telah dibuang,
+# menyebabkan hanya 257 daripada 263 program dipaparkan.
+# KPI bagi rekod tanpa sasaran positif kekal 0 dan dikategorikan Merah.
 df_dinilai = df[
-    (df["STATUS_KHAS"] == "")
-    & df["WEIGHTAGE_L_NUM"].notna()
-    & (df["WEIGHTAGE_L_NUM"] > 0)
+    df["STATUS_KHAS"] == ""
 ].copy()
 
 jumlah_bermula_q2_asal = int(df_bermula_q2["JUMLAH_PROGRAM_NUM"].sum())
