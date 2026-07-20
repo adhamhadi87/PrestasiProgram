@@ -2537,21 +2537,39 @@ if program_gugur_col is not None:
 else:
     df["BIL_PROGRAM_GUGUR_NUM"] = 0
 
-df["JUMLAH_PROGRAM_NUM"] = (
-    df["BIL_PROGRAM_ASAL_NUM"]
-    + df["BIL_PROGRAM_DITAMBAH_NUM"]
-)
+# =====================================================
+# KAEDAH KIRAAN PROGRAM
+# =====================================================
+# Q1:
+# Gunakan nilai Bil. Program jika tersedia. Jika kosong, satu baris program = 1.
+#
+# Q2:
+# Program tambahan telah dimasukkan sebagai baris program baharu dalam sheet.
+# Oleh itu, setiap baris program yang sah dikira sebagai 1 program.
+# JANGAN tambah semula nilai Bil. Program DiTambah kerana ia menyebabkan
+# program tambahan dikira dua kali.
+if ACTIVE_QUARTER == "Q2":
+    valid_program_row = (
+        df[program_col].notna()
+        & (df[program_col].astype(str).str.strip() != "")
+    )
 
-# Fallback hanya untuk fail lama/Q1 yang benar-benar tiada kolum bilangan program.
-# Untuk Q2, jangan tambah 1 secara automatik kerana ia boleh mengganggu jumlah sebenar.
-if ACTIVE_QUARTER == "Q1":
-    df.loc[df["JUMLAH_PROGRAM_NUM"] <= 0, "JUMLAH_PROGRAM_NUM"] = 1
+    df["JUMLAH_PROGRAM_NUM"] = 0
+    df.loc[valid_program_row, "JUMLAH_PROGRAM_NUM"] = 1
 else:
-    missing_q2_count = df["JUMLAH_PROGRAM_NUM"] <= 0
-    df.loc[missing_q2_count & df[program_col].notna(), "JUMLAH_PROGRAM_NUM"] = 1
+    df["JUMLAH_PROGRAM_NUM"] = df["BIL_PROGRAM_ASAL_NUM"].copy()
 
-# Semakan kawalan Q2: jumlah penuh tanpa filter hendaklah 263
-# (258 program asal + 5 program tambahan).
+    valid_program_row = (
+        df[program_col].notna()
+        & (df[program_col].astype(str).str.strip() != "")
+    )
+
+    df.loc[
+        valid_program_row & (df["JUMLAH_PROGRAM_NUM"] <= 0),
+        "JUMLAH_PROGRAM_NUM"
+    ] = 1
+
+# Semakan kawalan Q2: jumlah penuh tanpa filter hendaklah 263.
 JUMLAH_PROGRAM_Q2_SEPATUTNYA = 263
 
 df["JENIS_PROGRAM"] = "PROGRAM ASAL"
@@ -2580,11 +2598,26 @@ df.loc[valid_kpi_mask, "KPI_PENCAPAIAN_NUM"] = (
 df = df[
     df[sektor_col].notna()
     & df[bahagian_col].notna()
+    & df[program_col].notna()
     & (df[sektor_col].astype(str).str.strip() != "")
     & (df[bahagian_col].astype(str).str.strip() != "")
+    & (df[program_col].astype(str).str.strip() != "")
 ].copy()
 
-jumlah_asal = len(df)
+# Jumlah baris program yang sah selepas pembersihan.
+jumlah_asal = int(df["JUMLAH_PROGRAM_NUM"].sum())
+
+# Amaran kawalan hanya dipaparkan bagi Q2 tanpa mengubah data secara paksa.
+if ACTIVE_QUARTER == "Q2":
+    jumlah_q2_dikesan = int(df["JUMLAH_PROGRAM_NUM"].sum())
+
+    if jumlah_q2_dikesan != JUMLAH_PROGRAM_Q2_SEPATUTNYA:
+        st.warning(
+            f"Semakan data Q2: sistem mengesan {jumlah_q2_dikesan} program, "
+            f"sedangkan jumlah yang dijangka ialah "
+            f"{JUMLAH_PROGRAM_Q2_SEPATUTNYA}. "
+            "Sila semak baris program kosong atau baris tambahan dalam sheet Q2."
+        )
 
 
 # =====================================================
@@ -2601,11 +2634,11 @@ df_dinilai = df[
     & (df["WEIGHTAGE_L_NUM"] > 0)
 ].copy()
 
-jumlah_bermula_q2_asal = len(df_bermula_q2)
-jumlah_bermula_q3_asal = len(df_bermula_q3)
-jumlah_bermula_q4_asal = len(df_bermula_q4)
-jumlah_tidak_dilaksanakan_asal = len(df_tidak_dilaksanakan)
-jumlah_dinilai = len(df_dinilai)
+jumlah_bermula_q2_asal = int(df_bermula_q2["JUMLAH_PROGRAM_NUM"].sum())
+jumlah_bermula_q3_asal = int(df_bermula_q3["JUMLAH_PROGRAM_NUM"].sum())
+jumlah_bermula_q4_asal = int(df_bermula_q4["JUMLAH_PROGRAM_NUM"].sum())
+jumlah_tidak_dilaksanakan_asal = int(df_tidak_dilaksanakan["JUMLAH_PROGRAM_NUM"].sum())
+jumlah_dinilai = int(df_dinilai["JUMLAH_PROGRAM_NUM"].sum())
 jumlah_ignore_weightage = (
     jumlah_asal
     - jumlah_bermula_q2_asal
