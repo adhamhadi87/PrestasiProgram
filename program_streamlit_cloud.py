@@ -2527,10 +2527,26 @@ else:
     ])
     pencapaian_fizikal_col = find_col_exact(df, ["DATA DARI BAHAGIAN Q2"])
 
+    # Traffic Light Suku Kedua merujuk terus Column AD.
+    q2_kpi_col = find_col_exact(df, [
+        "% PENCAPAIAN (100%)",
+        "PENCAPAIAN (100%)",
+        "% PENCAPAIAN 100%"
+    ])
+
 if weightage_col is None or pencapaian_col is None:
     st.error(
         f"Kolum sasaran atau pencapaian untuk {quarter_tab} tidak dijumpai dalam "
         f"sheet {resolve_sheet_name(pd.ExcelFile(uploaded_file), ACTIVE_SHEET_OPTIONS)}."
+    )
+    st.write("Kolum yang dibaca:")
+    st.write(list(df.columns))
+    st.stop()
+
+if ACTIVE_QUARTER == "Q2" and q2_kpi_col is None:
+    st.error(
+        "Kolum **% PENCAPAIAN (100%)** untuk Traffic Light Suku Kedua "
+        "tidak dijumpai dalam sheet DATA DASHBOARD Q2 CLEAN."
     )
     st.write("Kolum yang dibaca:")
     st.write(list(df.columns))
@@ -2554,21 +2570,26 @@ if ACTIVE_QUARTER == "Q2":
 df["WEIGHTAGE_L_NUM"] = to_number(df[weightage_col])
 df["PENCAPAIAN_M_NUM"] = to_number(df[pencapaian_col])
 
-# KPI PENCAPAIAN:
-# Column L = SASARAN
-# Column M = PRESTASI
-# Traffic light dikira berdasarkan PRESTASI / SASARAN x 100.
-df["KPI_PENCAPAIAN_NUM"] = 0.0
-valid_kpi_mask = (
-    df["WEIGHTAGE_L_NUM"].notna()
-    & (df["WEIGHTAGE_L_NUM"] > 0)
-    & df["PENCAPAIAN_M_NUM"].notna()
-)
+# KPI PENCAPAIAN UNTUK TRAFFIC LIGHT:
+# - Suku Pertama kekal seperti asal: PRESTASI / SASARAN x 100.
+# - Suku Kedua merujuk terus Column AD: % PENCAPAIAN (100%).
+if ACTIVE_QUARTER == "Q1":
+    df["KPI_PENCAPAIAN_NUM"] = 0.0
 
-df.loc[valid_kpi_mask, "KPI_PENCAPAIAN_NUM"] = (
-    df.loc[valid_kpi_mask, "PENCAPAIAN_M_NUM"]
-    / df.loc[valid_kpi_mask, "WEIGHTAGE_L_NUM"]
-) * 100
+    valid_kpi_mask = (
+        df["WEIGHTAGE_L_NUM"].notna()
+        & (df["WEIGHTAGE_L_NUM"] > 0)
+        & df["PENCAPAIAN_M_NUM"].notna()
+    )
+
+    df.loc[valid_kpi_mask, "KPI_PENCAPAIAN_NUM"] = (
+        df.loc[valid_kpi_mask, "PENCAPAIAN_M_NUM"]
+        / df.loc[valid_kpi_mask, "WEIGHTAGE_L_NUM"]
+    ) * 100
+else:
+    # Nilai kosong dalam Column AD dianggap 0% supaya program aktif
+    # tidak tercicir daripada kategori Traffic Light.
+    df["KPI_PENCAPAIAN_NUM"] = to_number(df[q2_kpi_col]).fillna(0)
 
 df = df[
     df[sektor_col].notna()
@@ -2588,11 +2609,19 @@ df_bermula_q3 = df[df["STATUS_KHAS"] == "BERMULA Q3"].copy()
 df_bermula_q4 = df[df["STATUS_KHAS"] == "BERMULA Q4"].copy()
 df_tidak_dilaksanakan = df[df["STATUS_KHAS"] == "TIDAK DILAKSANAKAN"].copy()
 
-df_dinilai = df[
-    (df["STATUS_KHAS"] == "")
-    & df["WEIGHTAGE_L_NUM"].notna()
-    & (df["WEIGHTAGE_L_NUM"] > 0)
-].copy()
+if ACTIVE_QUARTER == "Q1":
+    # Suku Pertama kekalkan syarat penilaian asal.
+    df_dinilai = df[
+        (df["STATUS_KHAS"] == "")
+        & df["WEIGHTAGE_L_NUM"].notna()
+        & (df["WEIGHTAGE_L_NUM"] > 0)
+    ].copy()
+else:
+    # Suku Kedua: semua program aktif dinilai berdasarkan Column AD.
+    # Q3, Q4 dan Gugur telah diasingkan melalui STATUS_KHAS.
+    df_dinilai = df[
+        df["STATUS_KHAS"] == ""
+    ].copy()
 
 jumlah_bermula_q2_asal = len(df_bermula_q2)
 jumlah_bermula_q3_asal = len(df_bermula_q3)
