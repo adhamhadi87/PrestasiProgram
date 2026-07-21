@@ -2661,6 +2661,7 @@ if selected_bahagian:
 # Contoh: PI.N0.NA.10110003.01 -> NA
 # =====================================================
 kod_program_col = find_col(df_paparan, ["KOD PROGRAM", "KOD"])
+selected_kod = []
 
 if kod_program_col is not None:
     # Wajib cipta kolum short form dalam kedua-dua dataframe:
@@ -2800,8 +2801,39 @@ tidak_dilaksanakan = len(df_tidak_filtered)
 
 panel_df = filtered_df.copy()
 
+# Jumlah Program mesti dikira daripada SEMUA rekod program dalam sheet,
+# termasuk rekod yang belum mempunyai weightage/pencapaian.
+# Sebelum ini kiraan menggunakan filtered_df (df_paparan), menyebabkan
+# 6 program tanpa weightage tidak dimasukkan: 263 - 6 - 11 = 246.
+# Kiraan betul Q2 ialah 263 - 11 Gugur = 252.
+panel_count_df = df.copy()
+
+if selected_sektor:
+    panel_count_df = panel_count_df[
+        panel_count_df[sektor_col].isin(selected_sektor)
+    ].copy()
+
+if selected_bahagian:
+    panel_count_df = panel_count_df[
+        panel_count_df[bahagian_col].isin(selected_bahagian)
+    ].copy()
+
+if selected_kod and kod_program_col is not None and kod_program_col in panel_count_df.columns:
+    panel_count_df["KOD_PROGRAM_SHORT"] = (
+        panel_count_df[kod_program_col]
+        .astype(str)
+        .str.extract(r"PI\.[^.]+\.([^.]+)\.", expand=False)
+        .fillna("LAIN-LAIN")
+        .str.strip()
+    )
+    panel_count_df = panel_count_df[
+        panel_count_df["KOD_PROGRAM_SHORT"].isin(selected_kod)
+    ].copy()
+
 jumlah_program_panel = len(
-    panel_df[panel_df["STATUS_KHAS"] != "TIDAK DILAKSANAKAN"]
+    panel_count_df[
+        panel_count_df["STATUS_KHAS"] != "TIDAK DILAKSANAKAN"
+    ]
 )
 
 panel_df["SASARAN_PANEL_NUM"] = (
