@@ -2385,7 +2385,7 @@ ACTIVE_SASARAN_PANEL = QUARTER_CONFIG[quarter_tab]["sasaran_panel"]
 # Bersihkan pilihan status apabila pengguna bertukar suku tahun.
 if st.session_state.get("last_quarter_tab") != ACTIVE_QUARTER:
     st.session_state["last_quarter_tab"] = ACTIVE_QUARTER
-    st.session_state["selected_traffic"] = None
+    st.session_state["selected_traffic"] = "Semua"
     st.session_state["focus_page"] = None
 
 st.title(QUARTER_CONFIG[quarter_tab]["title"])
@@ -2754,7 +2754,7 @@ if st.sidebar.button(
     st.session_state[f"filter_kod_program_{ACTIVE_QUARTER.lower()}_selected"] = []
 
     if "selected_traffic" in st.session_state:
-        st.session_state.selected_traffic = None
+        st.session_state.selected_traffic = "Semua"
 
     st.rerun()
 
@@ -2769,7 +2769,7 @@ if st.sidebar.button(
     st.session_state[f"filter_kod_program_{ACTIVE_QUARTER.lower()}_selected"] = []
 
     if "selected_traffic" in st.session_state:
-        st.session_state.selected_traffic = None
+        st.session_state.selected_traffic = "Semua"
 
     st.rerun()
 
@@ -2898,7 +2898,7 @@ filtered_df["KATEGORI_TRAFFIC"] = filtered_df["TRAFFIC_LIGHT"].replace({
 })
 
 if "selected_traffic" not in st.session_state:
-    st.session_state.selected_traffic = None
+    st.session_state.selected_traffic = "Semua"
 
 chart_filtered_df = get_chart_source_df(filtered_df)
 
@@ -3003,47 +3003,61 @@ if st.session_state.focus_page in FOCUS_PAGES:
 
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("<div style='margin-top:22px; margin-bottom:10px;'>", unsafe_allow_html=True)
-            fq1, fsep1, fq2, fsep2, fq3, fsep3, fq4 = st.columns([1.45, 0.12, 1.45, 0.12, 1.45, 0.12, 3.25])
 
-            with fq1:
-                flabel, fvalue = st.columns([2.5, 1])
-                with flabel:
-                    st.markdown('<div class="status-label-text">Q2 -</div>', unsafe_allow_html=True)
-                with fvalue:
-                    if st.button(str(bermula_q2), key="focus_btn_q2_status"):
-                        st.session_state.selected_traffic = "Q2"
-                        st.rerun()
-            with fsep1:
-                st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+            if ACTIVE_QUARTER == "Q2":
+                # Suku Kedua tidak perlu memaparkan Q2 kerana program Q2 sedang dinilai.
+                fq3, fsep2, fq4, fsep3, fgugur = st.columns([1.45, 0.12, 1.45, 0.12, 1.85])
 
-            with fq2:
-                flabel, fvalue = st.columns([2.5, 1])
-                with flabel:
-                    st.markdown('<div class="status-label-text">Q3 -</div>', unsafe_allow_html=True)
-                with fvalue:
-                    if st.button(str(bermula_q3), key="focus_btn_q3_status"):
+                with fq3:
+                    if st.button(f"Q3-{bermula_q3}", key="focus_btn_q3_status"):
                         st.session_state.selected_traffic = "Q3"
                         st.rerun()
-            with fsep2:
-                st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
 
-            with fq3:
-                flabel, fvalue = st.columns([2.5, 1])
-                with flabel:
-                    st.markdown('<div class="status-label-text">Q4 -</div>', unsafe_allow_html=True)
-                with fvalue:
-                    if st.button(str(bermula_q4), key="focus_btn_q4_status"):
+                with fsep2:
+                    st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+                with fq4:
+                    if st.button(f"Q4-{bermula_q4}", key="focus_btn_q4_status"):
                         st.session_state.selected_traffic = "Q4"
                         st.rerun()
-            with fsep3:
-                st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
 
-            with fq4:
-                flabel, fvalue = st.columns([3.0, 1])
-                with flabel:
-                    st.markdown('<div class="status-label-text">GUGUR -</div>', unsafe_allow_html=True)
-                with fvalue:
-                    if st.button(str(tidak_dilaksanakan), key="focus_btn_gugur_status"):
+                with fsep3:
+                    st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+                with fgugur:
+                    if st.button(f"GUGUR-{tidak_dilaksanakan}", key="focus_btn_gugur_status"):
+                        st.session_state.selected_traffic = "Gugur"
+                        st.rerun()
+            else:
+                fq1, fsep1, fq2, fsep2, fq3, fsep3, fq4 = st.columns([1.45, 0.12, 1.45, 0.12, 1.45, 0.12, 1.85])
+
+                with fq1:
+                    if st.button(f"Q2-{bermula_q2}", key="focus_btn_q2_status"):
+                        st.session_state.selected_traffic = "Q2"
+                        st.rerun()
+                with fsep1:
+                    st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+                with fq2:
+                    if st.button(f"Q3-{bermula_q3}", key="focus_btn_q3_status"):
+                        st.session_state.selected_traffic = "Q3"
+                        st.rerun()
+                with fsep2:
+                    st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+                with fq3:
+                    flabel, fvalue = st.columns([2.5, 1])
+                    with flabel:
+                        st.markdown('<div class="status-label-text">Q4 -</div>', unsafe_allow_html=True)
+                    with fvalue:
+                        if st.button(str(bermula_q4), key="focus_btn_q4_status"):
+                            st.session_state.selected_traffic = "Q4"
+                            st.rerun()
+                with fsep3:
+                    st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+                with fq4:
+                    if st.button(f"GUGUR-{tidak_dilaksanakan}", key="focus_btn_gugur_status"):
                         st.session_state.selected_traffic = "Gugur"
                         st.rerun()
 
@@ -3185,58 +3199,78 @@ with main_left:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Baris khas: Q2 / Q3 / Q4 / TIDAK DILAKSANAKAN
+    # Baris khas mengikut suku tahun.
     st.markdown("<div style='margin-top:22px; margin-bottom:10px;'>", unsafe_allow_html=True)
-    q_col1, q_sep1, q_col2, q_sep2, q_col3, q_sep3, q_col4 = st.columns([1.45, 0.12, 1.45, 0.12, 1.45, 0.12, 3.25])
 
-    with q_col1:
-        q2_label, q2_value = st.columns([2.5, 1])
-        with q2_label:
-            st.markdown('<div class="status-label-text">Q2 -</div>', unsafe_allow_html=True)
-        with q2_value:
-            if st.button(str(bermula_q2), key="btn_q2_status"):
-                st.session_state.selected_traffic = "Q2"
-                if "selected_chart_bahagian" in st.session_state:
-                    st.session_state.selected_chart_bahagian = None
-                st.rerun()
+    if ACTIVE_QUARTER == "Q2":
+        # Paparan Q2 hanya menunjukkan status masa hadapan dan program gugur.
+        q_col3, q_sep2, q_col4, q_sep3, q_gugur = st.columns([1.45, 0.12, 1.45, 0.12, 1.85])
 
-    with q_sep1:
-        st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
-
-    with q_col2:
-        q3_label, q3_value = st.columns([2.5, 1])
-        with q3_label:
-            st.markdown('<div class="status-label-text">Q3 -</div>', unsafe_allow_html=True)
-        with q3_value:
-            if st.button(str(bermula_q3), key="btn_q3_status"):
+        with q_col3:
+            if st.button(f"Q3-{bermula_q3}", key="btn_q3_status"):
                 st.session_state.selected_traffic = "Q3"
                 if "selected_chart_bahagian" in st.session_state:
                     st.session_state.selected_chart_bahagian = None
                 st.rerun()
 
-    with q_sep2:
-        st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+        with q_sep2:
+            st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
 
-    with q_col3:
-        q4_label, q4_value = st.columns([2.5, 1])
-        with q4_label:
-            st.markdown('<div class="status-label-text">Q4 -</div>', unsafe_allow_html=True)
-        with q4_value:
-            if st.button(str(bermula_q4), key="btn_q4_status"):
+        with q_col4:
+            if st.button(f"Q4-{bermula_q4}", key="btn_q4_status"):
                 st.session_state.selected_traffic = "Q4"
                 if "selected_chart_bahagian" in st.session_state:
                     st.session_state.selected_chart_bahagian = None
                 st.rerun()
 
-    with q_sep3:
-        st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+        with q_sep3:
+            st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
 
-    with q_col4:
-        tidak_label, tidak_value = st.columns([6.5, 1])
-        with tidak_label:
-            st.markdown('<div class="status-label-text">GUGUR -</div>', unsafe_allow_html=True)
-        with tidak_value:
-            if st.button(str(tidak_dilaksanakan), key="btn_tidak_status"):
+        with q_gugur:
+            if st.button(f"GUGUR-{tidak_dilaksanakan}", key="btn_tidak_status"):
+                st.session_state.selected_traffic = "Gugur"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
+    else:
+        q_col1, q_sep1, q_col2, q_sep2, q_col3, q_sep3, q_col4 = st.columns([1.45, 0.12, 1.45, 0.12, 1.45, 0.12, 1.85])
+
+        with q_col1:
+            if st.button(f"Q2-{bermula_q2}", key="btn_q2_status"):
+                st.session_state.selected_traffic = "Q2"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
+
+        with q_sep1:
+            st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+        with q_col2:
+            if st.button(f"Q3-{bermula_q3}", key="btn_q3_status"):
+                st.session_state.selected_traffic = "Q3"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
+
+        with q_sep2:
+            st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+        with q_col3:
+            q4_label, q4_value = st.columns([2.5, 1])
+            with q4_label:
+                st.markdown('<div class="status-label-text">Q4 -</div>', unsafe_allow_html=True)
+            with q4_value:
+                if st.button(str(bermula_q4), key="btn_q4_status"):
+                    st.session_state.selected_traffic = "Q4"
+                    if "selected_chart_bahagian" in st.session_state:
+                        st.session_state.selected_chart_bahagian = None
+                    st.rerun()
+
+        with q_sep3:
+            st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+
+        with q_col4:
+            if st.button(f"GUGUR-{tidak_dilaksanakan}", key="btn_tidak_status"):
                 st.session_state.selected_traffic = "Gugur"
                 if "selected_chart_bahagian" in st.session_state:
                     st.session_state.selected_chart_bahagian = None
