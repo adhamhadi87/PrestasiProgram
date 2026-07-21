@@ -2251,15 +2251,10 @@ def build_summary_program_bahagian(source_df, bahagian_col):
         .reset_index()
     )
 
-    status_columns = [
-        "Hijau",
-        "Kuning",
-        "Merah",
-        "Q2",
-        "Q3",
-        "Q4",
-        "Gugur"
-    ]
+    status_columns = ["Hijau", "Kuning", "Merah"]
+    if ACTIVE_QUARTER == "Q1":
+        status_columns.append("Q2")
+    status_columns.extend(["Q3", "Q4", "Gugur"])
 
     for col in status_columns:
         if col not in summary.columns:
@@ -2275,7 +2270,7 @@ def build_summary_program_bahagian(source_df, bahagian_col):
         "Hijau": int(summary["Hijau"].sum()),
         "Kuning": int(summary["Kuning"].sum()),
         "Merah": int(summary["Merah"].sum()),
-        "Q2": int(summary["Q2"].sum()),
+        "Q2": int(summary["Q2"].sum()) if "Q2" in summary.columns else 0,
         "Q3": int(summary["Q3"].sum()),
         "Q4": int(summary["Q4"].sum()),
         "Gugur": int(summary["Gugur"].sum()),
@@ -2317,7 +2312,10 @@ def build_bahagian_chart(filtered_df, bahagian_col, chart_height=None):
         .rename(columns={"size": "JUMLAH"})
     )
 
-    status_order = ["Hijau", "Kuning", "Merah", "Q2", "Q3", "Q4", "Gugur"]
+    status_order = ["Hijau", "Kuning", "Merah"]
+    if ACTIVE_QUARTER == "Q1":
+        status_order.append("Q2")
+    status_order.extend(["Q3", "Q4", "Gugur"])
 
     bahagian_status["KATEGORI_TRAFFIC"] = pd.Categorical(
         bahagian_status["KATEGORI_TRAFFIC"],
@@ -2547,6 +2545,11 @@ df[bahagian_col] = df[bahagian_col].astype("string").str.strip()
 df[program_col] = df[program_col].astype("string").str.strip()
 
 df["STATUS_KHAS"] = df.apply(detect_status_khas, axis=1)
+
+# Dalam Suku Kedua, program yang bermula Q2 telah masuk tempoh penilaian.
+# Oleh itu, status BERMULA Q2 ditukar kepada status biasa untuk dinilai dalam Traffic Light.
+if ACTIVE_QUARTER == "Q2":
+    df.loc[df["STATUS_KHAS"] == "BERMULA Q2", "STATUS_KHAS"] = ""
 
 df["WEIGHTAGE_L_NUM"] = to_number(df[weightage_col])
 df["PENCAPAIAN_M_NUM"] = to_number(df[pencapaian_col])
@@ -2959,19 +2962,23 @@ if st.session_state.focus_page in FOCUS_PAGES:
 
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown('<div class="compact-status-row" style="margin-top:22px; margin-bottom:10px;">', unsafe_allow_html=True)
-            fq2_label, fq2_value, fsep1, fq3_label, fq3_value, fsep2, fq4_label, fq4_value, fsep3, fg_label, fg_value = st.columns(
-                [0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 1.05, 0.42]
-            )
 
-            with fq2_label:
-                st.markdown('<div class="compact-status-label">Q2-</div>', unsafe_allow_html=True)
-            with fq2_value:
-                if st.button(str(bermula_q2), key="focus_btn_q2_status"):
-                    st.session_state.selected_traffic = "Q2"
-                    st.rerun()
-
-            with fsep1:
-                st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
+            if ACTIVE_QUARTER == "Q1":
+                fq2_label, fq2_value, fsep1, fq3_label, fq3_value, fsep2, fq4_label, fq4_value, fsep3, fg_label, fg_value = st.columns(
+                    [0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 1.05, 0.42]
+                )
+                with fq2_label:
+                    st.markdown('<div class="compact-status-label">Q2-</div>', unsafe_allow_html=True)
+                with fq2_value:
+                    if st.button(str(bermula_q2), key="focus_btn_q2_status"):
+                        st.session_state.selected_traffic = "Q2"
+                        st.rerun()
+                with fsep1:
+                    st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
+            else:
+                fq3_label, fq3_value, fsep2, fq4_label, fq4_value, fsep3, fg_label, fg_value = st.columns(
+                    [0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 1.05, 0.42]
+                )
 
             with fq3_label:
                 st.markdown('<div class="compact-status-label">Q3-</div>', unsafe_allow_html=True)
@@ -2979,20 +2986,16 @@ if st.session_state.focus_page in FOCUS_PAGES:
                 if st.button(str(bermula_q3), key="focus_btn_q3_status"):
                     st.session_state.selected_traffic = "Q3"
                     st.rerun()
-
             with fsep2:
                 st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
-
             with fq4_label:
                 st.markdown('<div class="compact-status-label">Q4-</div>', unsafe_allow_html=True)
             with fq4_value:
                 if st.button(str(bermula_q4), key="focus_btn_q4_status"):
                     st.session_state.selected_traffic = "Q4"
                     st.rerun()
-
             with fsep3:
                 st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
-
             with fg_label:
                 st.markdown('<div class="compact-status-label">GUGUR-</div>', unsafe_allow_html=True)
             with fg_value:
@@ -3138,23 +3141,27 @@ with main_left:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Baris khas kompak: Q2-10 | Q3-12 | Q4-15 | GUGUR-18
+    # Baris status khas: Suku Pertama papar Q2/Q3/Q4/Gugur; Suku Kedua papar Q3/Q4/Gugur sahaja.
     st.markdown('<div class="compact-status-row" style="margin-top:22px; margin-bottom:10px;">', unsafe_allow_html=True)
-    q2_label_col, q2_value_col, q_sep1, q3_label_col, q3_value_col, q_sep2, q4_label_col, q4_value_col, q_sep3, gugur_label_col, gugur_value_col = st.columns(
-        [0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 1.05, 0.42]
-    )
 
-    with q2_label_col:
-        st.markdown('<div class="compact-status-label">Q2-</div>', unsafe_allow_html=True)
-    with q2_value_col:
-        if st.button(str(bermula_q2), key="btn_q2_status"):
-            st.session_state.selected_traffic = "Q2"
-            if "selected_chart_bahagian" in st.session_state:
-                st.session_state.selected_chart_bahagian = None
-            st.rerun()
-
-    with q_sep1:
-        st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
+    if ACTIVE_QUARTER == "Q1":
+        q2_label_col, q2_value_col, q_sep1, q3_label_col, q3_value_col, q_sep2, q4_label_col, q4_value_col, q_sep3, gugur_label_col, gugur_value_col = st.columns(
+            [0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 1.05, 0.42]
+        )
+        with q2_label_col:
+            st.markdown('<div class="compact-status-label">Q2-</div>', unsafe_allow_html=True)
+        with q2_value_col:
+            if st.button(str(bermula_q2), key="btn_q2_status"):
+                st.session_state.selected_traffic = "Q2"
+                if "selected_chart_bahagian" in st.session_state:
+                    st.session_state.selected_chart_bahagian = None
+                st.rerun()
+        with q_sep1:
+            st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
+    else:
+        q3_label_col, q3_value_col, q_sep2, q4_label_col, q4_value_col, q_sep3, gugur_label_col, gugur_value_col = st.columns(
+            [0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 1.05, 0.42]
+        )
 
     with q3_label_col:
         st.markdown('<div class="compact-status-label">Q3-</div>', unsafe_allow_html=True)
@@ -3164,10 +3171,8 @@ with main_left:
             if "selected_chart_bahagian" in st.session_state:
                 st.session_state.selected_chart_bahagian = None
             st.rerun()
-
     with q_sep2:
         st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
-
     with q4_label_col:
         st.markdown('<div class="compact-status-label">Q4-</div>', unsafe_allow_html=True)
     with q4_value_col:
@@ -3176,10 +3181,8 @@ with main_left:
             if "selected_chart_bahagian" in st.session_state:
                 st.session_state.selected_chart_bahagian = None
             st.rerun()
-
     with q_sep3:
         st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
-
     with gugur_label_col:
         st.markdown('<div class="compact-status-label">GUGUR-</div>', unsafe_allow_html=True)
     with gugur_value_col:
