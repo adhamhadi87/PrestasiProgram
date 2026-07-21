@@ -2713,7 +2713,7 @@ if st.sidebar.button(
     st.session_state[f"filter_kod_program_{ACTIVE_QUARTER.lower()}_selected"] = []
 
     if "selected_traffic" in st.session_state:
-        st.session_state.selected_traffic = None
+        st.session_state.selected_traffic = "Semua"
 
     st.rerun()
 
