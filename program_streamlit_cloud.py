@@ -1798,6 +1798,66 @@ st.markdown(
     div[data-testid="stRadio"] input {
         display: none !important;
     }
+
+    /* COMPACT Q2 / Q3 / Q4 / GUGUR - KEKAL SATU BARIS */
+    .compact-status-row [data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        gap: 0.20rem !important;
+        align-items: center !important;
+    }
+
+    .compact-status-row [data-testid="column"] {
+        min-width: 0 !important;
+        width: auto !important;
+        flex: 0 0 auto !important;
+    }
+
+    .compact-status-label {
+        font-size: 25px !important;
+        font-weight: 900 !important;
+        color: #2f3b4d !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        text-align: right !important;
+        padding-top: 2px !important;
+    }
+
+    .compact-status-separator {
+        font-size: 26px !important;
+        font-weight: 900 !important;
+        color: #2f3b4d !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        text-align: center !important;
+        padding: 0 1px !important;
+    }
+
+    .st-key-btn_q2_status button,
+    .st-key-btn_q3_status button,
+    .st-key-btn_q4_status button,
+    .st-key-btn_tidak_status button,
+    .st-key-focus_btn_q2_status button,
+    .st-key-focus_btn_q3_status button,
+    .st-key-focus_btn_q4_status button,
+    .st-key-focus_btn_gugur_status button {
+        white-space: nowrap !important;
+        min-width: 38px !important;
+        width: auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .st-key-btn_q2_status button p,
+    .st-key-btn_q3_status button p,
+    .st-key-btn_q4_status button p,
+    .st-key-btn_tidak_status button p,
+    .st-key-focus_btn_q2_status button p,
+    .st-key-focus_btn_q3_status button p,
+    .st-key-focus_btn_q4_status button p,
+    .st-key-focus_btn_gugur_status button p {
+        white-space: nowrap !important;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
@@ -2141,9 +2201,6 @@ def render_selected_list(df_list, sektor_col, bahagian_col, program_col, pencapa
         sektor_col,
         bahagian_col,
         program_col,
-        "JENIS_PROGRAM",
-        "BIL_PROGRAM_ASAL_NUM",
-        "BIL_PROGRAM_DITAMBAH_NUM",
         pencapaian_fizikal_col,
         weightage_col,
         pencapaian_col,
@@ -2158,11 +2215,10 @@ def render_selected_list(df_list, sektor_col, bahagian_col, program_col, pencapa
 
     display_df = df_list[display_cols].copy()
 
-    display_df = display_df.rename(columns={
-        "BIL_PROGRAM_ASAL_NUM": "BIL. PROGRAM ASAL",
-        "BIL_PROGRAM_DITAMBAH_NUM": "BIL. PROGRAM DITAMBAH",
-        "KPI_PENCAPAIAN_NUM": "PENCAPAIAN KPI (%)"
-    })
+    if "KPI_PENCAPAIAN_NUM" in display_df.columns:
+        display_df = display_df.rename(
+            columns={"KPI_PENCAPAIAN_NUM": "PENCAPAIAN KPI (%)"}
+        )
 
     st.dataframe(
         display_df.style.apply(highlight_traffic_light, axis=1),
@@ -2189,8 +2245,8 @@ def build_summary_program_bahagian(source_df, bahagian_col):
 
     summary = (
         source_df
-        .groupby([bahagian_col, "KATEGORI_TRAFFIC"], dropna=False)["JUMLAH_PROGRAM_NUM"]
-        .sum()
+        .groupby([bahagian_col, "KATEGORI_TRAFFIC"], dropna=False)
+        .size()
         .unstack(fill_value=0)
         .reset_index()
     )
@@ -2256,9 +2312,9 @@ def build_bahagian_chart(filtered_df, bahagian_col, chart_height=None):
     """
     bahagian_status = (
         filtered_df
-        .groupby([bahagian_col, "KATEGORI_TRAFFIC"], as_index=False)["JUMLAH_PROGRAM_NUM"]
-        .sum()
-        .rename(columns={"JUMLAH_PROGRAM_NUM": "JUMLAH"})
+        .groupby([bahagian_col, "KATEGORI_TRAFFIC"], as_index=False)
+        .size()
+        .rename(columns={"size": "JUMLAH"})
     )
 
     status_order = ["Hijau", "Kuning", "Merah", "Q2", "Q3", "Q4", "Gugur"]
@@ -2385,7 +2441,7 @@ ACTIVE_SASARAN_PANEL = QUARTER_CONFIG[quarter_tab]["sasaran_panel"]
 # Bersihkan pilihan status apabila pengguna bertukar suku tahun.
 if st.session_state.get("last_quarter_tab") != ACTIVE_QUARTER:
     st.session_state["last_quarter_tab"] = ACTIVE_QUARTER
-    st.session_state["selected_traffic"] = "Semua"
+    st.session_state["selected_traffic"] = None
     st.session_state["focus_page"] = None
 
 st.title(QUARTER_CONFIG[quarter_tab]["title"])
@@ -2447,31 +2503,6 @@ if sektor_col is None or bahagian_col is None:
 if program_col is None:
     program_col = df.columns[0]
 
-# Kolum bilangan program. Q2 mempunyai program asal, program tambahan dan program gugur.
-bil_program_col = find_col_exact(df, [
-    "BIL. PROGRAM",
-    "BIL PROGRAM"
-])
-program_ditambah_col = find_col_exact(df, [
-    "BIL. PROGRAM DITAMBAH",
-    "BIL PROGRAM DITAMBAH"
-])
-program_gugur_col = find_col_exact(df, [
-    "BIL. PROGRAM GUGUR",
-    "BIL PROGRAM GUGUR"
-])
-
-# Fallback tetap berdasarkan struktur sheet Q2 CLEAN:
-# E = Bil. Program, F = Bil. Program DiTambah, G = Bil. Program Gugur.
-# Ini memastikan program tambahan Q2 masuk dalam jumlah keseluruhan.
-if ACTIVE_QUARTER == "Q2":
-    if bil_program_col is None and len(df.columns) > 4:
-        bil_program_col = df.columns[4]
-    if program_ditambah_col is None and len(df.columns) > 5:
-        program_ditambah_col = df.columns[5]
-    if program_gugur_col is None and len(df.columns) > 6:
-        program_gugur_col = df.columns[6]
-
 if ACTIVE_QUARTER == "Q1":
     weightage_col = find_col_exact(df, [
         "PERATUS SASARAN (WEIGHTAGE) Q1",
@@ -2517,65 +2548,6 @@ df[program_col] = df[program_col].astype("string").str.strip()
 
 df["STATUS_KHAS"] = df.apply(detect_status_khas, axis=1)
 
-# =====================================================
-# BILANGAN PROGRAM SEBENAR
-# =====================================================
-# Jangan gunakan len(df) semata-mata kerana Q2 mempunyai program tambahan
-# yang direkodkan dalam kolum Bil. Program DiTambah.
-if bil_program_col is not None:
-    df["BIL_PROGRAM_ASAL_NUM"] = to_number(df[bil_program_col]).fillna(0)
-else:
-    df["BIL_PROGRAM_ASAL_NUM"] = 0
-
-if program_ditambah_col is not None:
-    df["BIL_PROGRAM_DITAMBAH_NUM"] = to_number(df[program_ditambah_col]).fillna(0)
-else:
-    df["BIL_PROGRAM_DITAMBAH_NUM"] = 0
-
-if program_gugur_col is not None:
-    df["BIL_PROGRAM_GUGUR_NUM"] = to_number(df[program_gugur_col]).fillna(0)
-else:
-    df["BIL_PROGRAM_GUGUR_NUM"] = 0
-
-# =====================================================
-# KAEDAH KIRAAN PROGRAM
-# =====================================================
-# Q1:
-# Gunakan nilai Bil. Program jika tersedia. Jika kosong, satu baris program = 1.
-#
-# Q2:
-# Program tambahan telah dimasukkan sebagai baris program baharu dalam sheet.
-# Oleh itu, setiap baris program yang sah dikira sebagai 1 program.
-# JANGAN tambah semula nilai Bil. Program DiTambah kerana ia menyebabkan
-# program tambahan dikira dua kali.
-if ACTIVE_QUARTER == "Q2":
-    valid_program_row = (
-        df[program_col].notna()
-        & (df[program_col].astype(str).str.strip() != "")
-    )
-
-    df["JUMLAH_PROGRAM_NUM"] = 0
-    df.loc[valid_program_row, "JUMLAH_PROGRAM_NUM"] = 1
-else:
-    df["JUMLAH_PROGRAM_NUM"] = df["BIL_PROGRAM_ASAL_NUM"].copy()
-
-    valid_program_row = (
-        df[program_col].notna()
-        & (df[program_col].astype(str).str.strip() != "")
-    )
-
-    df.loc[
-        valid_program_row & (df["JUMLAH_PROGRAM_NUM"] <= 0),
-        "JUMLAH_PROGRAM_NUM"
-    ] = 1
-
-# Semakan kawalan Q2: jumlah penuh tanpa filter hendaklah 263.
-JUMLAH_PROGRAM_Q2_SEPATUTNYA = 263
-
-df["JENIS_PROGRAM"] = "PROGRAM ASAL"
-df.loc[df["BIL_PROGRAM_DITAMBAH_NUM"] > 0, "JENIS_PROGRAM"] = "PROGRAM TAMBAHAN Q2"
-df.loc[df["BIL_PROGRAM_GUGUR_NUM"] > 0, "JENIS_PROGRAM"] = "PROGRAM GUGUR"
-
 df["WEIGHTAGE_L_NUM"] = to_number(df[weightage_col])
 df["PENCAPAIAN_M_NUM"] = to_number(df[pencapaian_col])
 
@@ -2598,26 +2570,11 @@ df.loc[valid_kpi_mask, "KPI_PENCAPAIAN_NUM"] = (
 df = df[
     df[sektor_col].notna()
     & df[bahagian_col].notna()
-    & df[program_col].notna()
     & (df[sektor_col].astype(str).str.strip() != "")
     & (df[bahagian_col].astype(str).str.strip() != "")
-    & (df[program_col].astype(str).str.strip() != "")
 ].copy()
 
-# Jumlah baris program yang sah selepas pembersihan.
-jumlah_asal = int(df["JUMLAH_PROGRAM_NUM"].sum())
-
-# Amaran kawalan hanya dipaparkan bagi Q2 tanpa mengubah data secara paksa.
-if ACTIVE_QUARTER == "Q2":
-    jumlah_q2_dikesan = int(df["JUMLAH_PROGRAM_NUM"].sum())
-
-    if jumlah_q2_dikesan != JUMLAH_PROGRAM_Q2_SEPATUTNYA:
-        st.warning(
-            f"Semakan data Q2: sistem mengesan {jumlah_q2_dikesan} program, "
-            f"sedangkan jumlah yang dijangka ialah "
-            f"{JUMLAH_PROGRAM_Q2_SEPATUTNYA}. "
-            "Sila semak baris program kosong atau baris tambahan dalam sheet Q2."
-        )
+jumlah_asal = len(df)
 
 
 # =====================================================
@@ -2628,19 +2585,17 @@ df_bermula_q3 = df[df["STATUS_KHAS"] == "BERMULA Q3"].copy()
 df_bermula_q4 = df[df["STATUS_KHAS"] == "BERMULA Q4"].copy()
 df_tidak_dilaksanakan = df[df["STATUS_KHAS"] == "TIDAK DILAKSANAKAN"].copy()
 
-# Semua program tanpa status khas mesti kekal dalam paparan.
-# Sebelum ini, program dengan sasaran Q2 kosong atau 0 telah dibuang,
-# menyebabkan hanya 257 daripada 263 program dipaparkan.
-# KPI bagi rekod tanpa sasaran positif kekal 0 dan dikategorikan Merah.
 df_dinilai = df[
-    df["STATUS_KHAS"] == ""
+    (df["STATUS_KHAS"] == "")
+    & df["WEIGHTAGE_L_NUM"].notna()
+    & (df["WEIGHTAGE_L_NUM"] > 0)
 ].copy()
 
-jumlah_bermula_q2_asal = int(df_bermula_q2["JUMLAH_PROGRAM_NUM"].sum())
-jumlah_bermula_q3_asal = int(df_bermula_q3["JUMLAH_PROGRAM_NUM"].sum())
-jumlah_bermula_q4_asal = int(df_bermula_q4["JUMLAH_PROGRAM_NUM"].sum())
-jumlah_tidak_dilaksanakan_asal = int(df_tidak_dilaksanakan["JUMLAH_PROGRAM_NUM"].sum())
-jumlah_dinilai = int(df_dinilai["JUMLAH_PROGRAM_NUM"].sum())
+jumlah_bermula_q2_asal = len(df_bermula_q2)
+jumlah_bermula_q3_asal = len(df_bermula_q3)
+jumlah_bermula_q4_asal = len(df_bermula_q4)
+jumlah_tidak_dilaksanakan_asal = len(df_tidak_dilaksanakan)
+jumlah_dinilai = len(df_dinilai)
 jumlah_ignore_weightage = (
     jumlah_asal
     - jumlah_bermula_q2_asal
@@ -2754,7 +2709,7 @@ if st.sidebar.button(
     st.session_state[f"filter_kod_program_{ACTIVE_QUARTER.lower()}_selected"] = []
 
     if "selected_traffic" in st.session_state:
-        st.session_state.selected_traffic = "Semua"
+        st.session_state.selected_traffic = None
 
     st.rerun()
 
@@ -2769,7 +2724,7 @@ if st.sidebar.button(
     st.session_state[f"filter_kod_program_{ACTIVE_QUARTER.lower()}_selected"] = []
 
     if "selected_traffic" in st.session_state:
-        st.session_state.selected_traffic = "Semua"
+        st.session_state.selected_traffic = None
 
     st.rerun()
 
@@ -2816,13 +2771,13 @@ df_bermula_q3_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "BERMULA Q3"]
 df_bermula_q4_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "BERMULA Q4"].copy()
 df_tidak_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "TIDAK DILAKSANAKAN"].copy()
 
-hijau = int(df_hijau["JUMLAH_PROGRAM_NUM"].sum())
-kuning = int(df_kuning["JUMLAH_PROGRAM_NUM"].sum())
-merah = int(df_merah["JUMLAH_PROGRAM_NUM"].sum())
-bermula_q2 = int(df_bermula_q2_filtered["JUMLAH_PROGRAM_NUM"].sum())
-bermula_q3 = int(df_bermula_q3_filtered["JUMLAH_PROGRAM_NUM"].sum())
-bermula_q4 = int(df_bermula_q4_filtered["JUMLAH_PROGRAM_NUM"].sum())
-tidak_dilaksanakan = int(df_tidak_filtered["JUMLAH_PROGRAM_NUM"].sum())
+hijau = len(df_hijau)
+kuning = len(df_kuning)
+merah = len(df_merah)
+bermula_q2 = len(df_bermula_q2_filtered)
+bermula_q3 = len(df_bermula_q3_filtered)
+bermula_q4 = len(df_bermula_q4_filtered)
+tidak_dilaksanakan = len(df_tidak_filtered)
 
 # Panel ringkasan:
 # BACA PADA SHEET DATA DASHBOARD SAHAJA.
@@ -2842,7 +2797,7 @@ tidak_dilaksanakan = int(df_tidak_filtered["JUMLAH_PROGRAM_NUM"].sum())
 
 panel_df = filtered_df.copy()
 
-jumlah_program_panel = int(panel_df["JUMLAH_PROGRAM_NUM"].sum())
+jumlah_program_panel = len(panel_df)
 
 panel_df["SASARAN_PANEL_NUM"] = (
     panel_df["WEIGHTAGE_L_NUM"]
@@ -2875,6 +2830,7 @@ if not panel_valid.empty:
 
     if jumlah_l > 0:
         prestasi_panel = (jumlah_m / jumlah_l) * sasaran_panel
+        prestasi_panel = min(prestasi_panel, sasaran_panel)
         pencapaian_panel = (prestasi_panel / sasaran_panel) * 100
     else:
         prestasi_panel = 0
@@ -2898,7 +2854,7 @@ filtered_df["KATEGORI_TRAFFIC"] = filtered_df["TRAFFIC_LIGHT"].replace({
 })
 
 if "selected_traffic" not in st.session_state:
-    st.session_state.selected_traffic = "Semua"
+    st.session_state.selected_traffic = None
 
 chart_filtered_df = get_chart_source_df(filtered_df)
 
@@ -3002,64 +2958,47 @@ if st.session_state.focus_page in FOCUS_PAGES:
                     st.rerun()
 
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<div style='margin-top:22px; margin-bottom:10px;'>", unsafe_allow_html=True)
+            st.markdown('<div class="compact-status-row" style="margin-top:22px; margin-bottom:10px;">', unsafe_allow_html=True)
+            fq2_label, fq2_value, fsep1, fq3_label, fq3_value, fsep2, fq4_label, fq4_value, fsep3, fg_label, fg_value = st.columns(
+                [0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 1.05, 0.42]
+            )
 
-            if ACTIVE_QUARTER == "Q2":
-                # Suku Kedua tidak perlu memaparkan Q2 kerana program Q2 sedang dinilai.
-                fq3, fsep2, fq4, fsep3, fgugur = st.columns([1.45, 0.12, 1.45, 0.12, 1.85])
+            with fq2_label:
+                st.markdown('<div class="compact-status-label">Q2-</div>', unsafe_allow_html=True)
+            with fq2_value:
+                if st.button(str(bermula_q2), key="focus_btn_q2_status"):
+                    st.session_state.selected_traffic = "Q2"
+                    st.rerun()
 
-                with fq3:
-                    if st.button(f"Q3-{bermula_q3}", key="focus_btn_q3_status"):
-                        st.session_state.selected_traffic = "Q3"
-                        st.rerun()
+            with fsep1:
+                st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
 
-                with fsep2:
-                    st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+            with fq3_label:
+                st.markdown('<div class="compact-status-label">Q3-</div>', unsafe_allow_html=True)
+            with fq3_value:
+                if st.button(str(bermula_q3), key="focus_btn_q3_status"):
+                    st.session_state.selected_traffic = "Q3"
+                    st.rerun()
 
-                with fq4:
-                    if st.button(f"Q4-{bermula_q4}", key="focus_btn_q4_status"):
-                        st.session_state.selected_traffic = "Q4"
-                        st.rerun()
+            with fsep2:
+                st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
 
-                with fsep3:
-                    st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+            with fq4_label:
+                st.markdown('<div class="compact-status-label">Q4-</div>', unsafe_allow_html=True)
+            with fq4_value:
+                if st.button(str(bermula_q4), key="focus_btn_q4_status"):
+                    st.session_state.selected_traffic = "Q4"
+                    st.rerun()
 
-                with fgugur:
-                    if st.button(f"GUGUR-{tidak_dilaksanakan}", key="focus_btn_gugur_status"):
-                        st.session_state.selected_traffic = "Gugur"
-                        st.rerun()
-            else:
-                fq1, fsep1, fq2, fsep2, fq3, fsep3, fq4 = st.columns([1.45, 0.12, 1.45, 0.12, 1.45, 0.12, 1.85])
+            with fsep3:
+                st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
 
-                with fq1:
-                    if st.button(f"Q2-{bermula_q2}", key="focus_btn_q2_status"):
-                        st.session_state.selected_traffic = "Q2"
-                        st.rerun()
-                with fsep1:
-                    st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
-
-                with fq2:
-                    if st.button(f"Q3-{bermula_q3}", key="focus_btn_q3_status"):
-                        st.session_state.selected_traffic = "Q3"
-                        st.rerun()
-                with fsep2:
-                    st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
-
-                with fq3:
-                    flabel, fvalue = st.columns([2.5, 1])
-                    with flabel:
-                        st.markdown('<div class="status-label-text">Q4 -</div>', unsafe_allow_html=True)
-                    with fvalue:
-                        if st.button(str(bermula_q4), key="focus_btn_q4_status"):
-                            st.session_state.selected_traffic = "Q4"
-                            st.rerun()
-                with fsep3:
-                    st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
-
-                with fq4:
-                    if st.button(f"GUGUR-{tidak_dilaksanakan}", key="focus_btn_gugur_status"):
-                        st.session_state.selected_traffic = "Gugur"
-                        st.rerun()
+            with fg_label:
+                st.markdown('<div class="compact-status-label">GUGUR-</div>', unsafe_allow_html=True)
+            with fg_value:
+                if st.button(str(tidak_dilaksanakan), key="focus_btn_gugur_status"):
+                    st.session_state.selected_traffic = "Gugur"
+                    st.rerun()
 
             st.markdown("</div>", unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
@@ -3199,82 +3138,56 @@ with main_left:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Baris khas mengikut suku tahun.
-    st.markdown("<div style='margin-top:22px; margin-bottom:10px;'>", unsafe_allow_html=True)
+    # Baris khas kompak: Q2-10 | Q3-12 | Q4-15 | GUGUR-18
+    st.markdown('<div class="compact-status-row" style="margin-top:22px; margin-bottom:10px;">', unsafe_allow_html=True)
+    q2_label_col, q2_value_col, q_sep1, q3_label_col, q3_value_col, q_sep2, q4_label_col, q4_value_col, q_sep3, gugur_label_col, gugur_value_col = st.columns(
+        [0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 0.55, 0.42, 0.16, 1.05, 0.42]
+    )
 
-    if ACTIVE_QUARTER == "Q2":
-        # Paparan Q2 hanya menunjukkan status masa hadapan dan program gugur.
-        q_col3, q_sep2, q_col4, q_sep3, q_gugur = st.columns([1.45, 0.12, 1.45, 0.12, 1.85])
+    with q2_label_col:
+        st.markdown('<div class="compact-status-label">Q2-</div>', unsafe_allow_html=True)
+    with q2_value_col:
+        if st.button(str(bermula_q2), key="btn_q2_status"):
+            st.session_state.selected_traffic = "Q2"
+            if "selected_chart_bahagian" in st.session_state:
+                st.session_state.selected_chart_bahagian = None
+            st.rerun()
 
-        with q_col3:
-            if st.button(f"Q3-{bermula_q3}", key="btn_q3_status"):
-                st.session_state.selected_traffic = "Q3"
-                if "selected_chart_bahagian" in st.session_state:
-                    st.session_state.selected_chart_bahagian = None
-                st.rerun()
+    with q_sep1:
+        st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
 
-        with q_sep2:
-            st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+    with q3_label_col:
+        st.markdown('<div class="compact-status-label">Q3-</div>', unsafe_allow_html=True)
+    with q3_value_col:
+        if st.button(str(bermula_q3), key="btn_q3_status"):
+            st.session_state.selected_traffic = "Q3"
+            if "selected_chart_bahagian" in st.session_state:
+                st.session_state.selected_chart_bahagian = None
+            st.rerun()
 
-        with q_col4:
-            if st.button(f"Q4-{bermula_q4}", key="btn_q4_status"):
-                st.session_state.selected_traffic = "Q4"
-                if "selected_chart_bahagian" in st.session_state:
-                    st.session_state.selected_chart_bahagian = None
-                st.rerun()
+    with q_sep2:
+        st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
 
-        with q_sep3:
-            st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
+    with q4_label_col:
+        st.markdown('<div class="compact-status-label">Q4-</div>', unsafe_allow_html=True)
+    with q4_value_col:
+        if st.button(str(bermula_q4), key="btn_q4_status"):
+            st.session_state.selected_traffic = "Q4"
+            if "selected_chart_bahagian" in st.session_state:
+                st.session_state.selected_chart_bahagian = None
+            st.rerun()
 
-        with q_gugur:
-            if st.button(f"GUGUR-{tidak_dilaksanakan}", key="btn_tidak_status"):
-                st.session_state.selected_traffic = "Gugur"
-                if "selected_chart_bahagian" in st.session_state:
-                    st.session_state.selected_chart_bahagian = None
-                st.rerun()
-    else:
-        q_col1, q_sep1, q_col2, q_sep2, q_col3, q_sep3, q_col4 = st.columns([1.45, 0.12, 1.45, 0.12, 1.45, 0.12, 1.85])
+    with q_sep3:
+        st.markdown('<div class="compact-status-separator">|</div>', unsafe_allow_html=True)
 
-        with q_col1:
-            if st.button(f"Q2-{bermula_q2}", key="btn_q2_status"):
-                st.session_state.selected_traffic = "Q2"
-                if "selected_chart_bahagian" in st.session_state:
-                    st.session_state.selected_chart_bahagian = None
-                st.rerun()
-
-        with q_sep1:
-            st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
-
-        with q_col2:
-            if st.button(f"Q3-{bermula_q3}", key="btn_q3_status"):
-                st.session_state.selected_traffic = "Q3"
-                if "selected_chart_bahagian" in st.session_state:
-                    st.session_state.selected_chart_bahagian = None
-                st.rerun()
-
-        with q_sep2:
-            st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
-
-        with q_col3:
-            q4_label, q4_value = st.columns([2.5, 1])
-            with q4_label:
-                st.markdown('<div class="status-label-text">Q4 -</div>', unsafe_allow_html=True)
-            with q4_value:
-                if st.button(str(bermula_q4), key="btn_q4_status"):
-                    st.session_state.selected_traffic = "Q4"
-                    if "selected_chart_bahagian" in st.session_state:
-                        st.session_state.selected_chart_bahagian = None
-                    st.rerun()
-
-        with q_sep3:
-            st.markdown('<div class="status-separator-text">|</div>', unsafe_allow_html=True)
-
-        with q_col4:
-            if st.button(f"GUGUR-{tidak_dilaksanakan}", key="btn_tidak_status"):
-                st.session_state.selected_traffic = "Gugur"
-                if "selected_chart_bahagian" in st.session_state:
-                    st.session_state.selected_chart_bahagian = None
-                st.rerun()
+    with gugur_label_col:
+        st.markdown('<div class="compact-status-label">GUGUR-</div>', unsafe_allow_html=True)
+    with gugur_value_col:
+        if st.button(str(tidak_dilaksanakan), key="btn_tidak_status"):
+            st.session_state.selected_traffic = "Gugur"
+            if "selected_chart_bahagian" in st.session_state:
+                st.session_state.selected_chart_bahagian = None
+            st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)
 
