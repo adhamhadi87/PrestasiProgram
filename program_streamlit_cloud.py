@@ -2800,7 +2800,9 @@ tidak_dilaksanakan = len(df_tidak_filtered)
 
 panel_df = filtered_df.copy()
 
-jumlah_program_panel = len(panel_df)
+jumlah_program_panel = len(
+    panel_df[panel_df["STATUS_KHAS"] != "TIDAK DILAKSANAKAN"]
+)
 
 panel_df["SASARAN_PANEL_NUM"] = (
     panel_df["WEIGHTAGE_L_NUM"]
