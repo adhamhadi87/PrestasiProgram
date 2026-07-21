@@ -2589,7 +2589,7 @@ if ACTIVE_QUARTER == "Q1":
 else:
     # Nilai kosong dalam Column AD dianggap 0% supaya program aktif
     # tidak tercicir daripada kategori Traffic Light.
-    df["KPI_PENCAPAIAN_NUM"] = to_number(df[q2_kpi_col]).fillna(0)
+    df["KPI_PENCAPAIAN_NUM"] = to_number(df[q2_kpi_col])
 
 df = df[
     df[sektor_col].notna()
@@ -2790,14 +2790,30 @@ filtered_dinilai = filtered_df[filtered_df["STATUS_KHAS"] == ""].copy()
 # =====================================================
 # MAIN PAGE - TRAFFIC LIGHT
 # =====================================================
-df_hijau = filtered_dinilai[filtered_dinilai["KPI_PENCAPAIAN_NUM"] >= 85].copy()
+# Q1 kekal menggunakan rekod yang sedang dinilai seperti logik asal.
+# Q2 pula mengira Traffic Light terus daripada Column AD (% PENCAPAIAN (100%)).
+# Nilai kosong dalam Column AD tidak dimasukkan sebagai Merah.
+# Status Q3, Q4 dan Gugur masih dipaparkan berasingan, tetapi jika Column AD
+# mempunyai nilai, rekod tersebut tetap termasuk dalam kiraan warna berdasarkan AD.
+if ACTIVE_QUARTER == "Q2":
+    traffic_source_df = filtered_df[
+        filtered_df["KPI_PENCAPAIAN_NUM"].notna()
+    ].copy()
+else:
+    traffic_source_df = filtered_dinilai.copy()
 
-df_kuning = filtered_dinilai[
-    (filtered_dinilai["KPI_PENCAPAIAN_NUM"] >= 60)
-    & (filtered_dinilai["KPI_PENCAPAIAN_NUM"] < 85)
+df_hijau = traffic_source_df[
+    traffic_source_df["KPI_PENCAPAIAN_NUM"] >= 85
 ].copy()
 
-df_merah = filtered_dinilai[filtered_dinilai["KPI_PENCAPAIAN_NUM"] < 60].copy()
+df_kuning = traffic_source_df[
+    (traffic_source_df["KPI_PENCAPAIAN_NUM"] >= 60)
+    & (traffic_source_df["KPI_PENCAPAIAN_NUM"] < 85)
+].copy()
+
+df_merah = traffic_source_df[
+    traffic_source_df["KPI_PENCAPAIAN_NUM"] < 60
+].copy()
 
 df_bermula_q2_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "BERMULA Q2"].copy()
 df_bermula_q3_filtered = filtered_df[filtered_df["STATUS_KHAS"] == "BERMULA Q3"].copy()
