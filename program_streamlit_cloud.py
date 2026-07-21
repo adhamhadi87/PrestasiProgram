@@ -2439,7 +2439,7 @@ ACTIVE_SASARAN_PANEL = QUARTER_CONFIG[quarter_tab]["sasaran_panel"]
 # Bersihkan pilihan status apabila pengguna bertukar suku tahun.
 if st.session_state.get("last_quarter_tab") != ACTIVE_QUARTER:
     st.session_state["last_quarter_tab"] = ACTIVE_QUARTER
-    st.session_state["selected_traffic"] = None
+    st.session_state["selected_traffic"] = "Semua"
     st.session_state["focus_page"] = None
 
 st.title(QUARTER_CONFIG[quarter_tab]["title"])
@@ -2728,7 +2728,7 @@ if st.sidebar.button(
     st.session_state[f"filter_kod_program_{ACTIVE_QUARTER.lower()}_selected"] = []
 
     if "selected_traffic" in st.session_state:
-        st.session_state.selected_traffic = None
+        st.session_state.selected_traffic = "Semua"
 
     st.rerun()
 
@@ -2891,7 +2891,7 @@ filtered_df["KATEGORI_TRAFFIC"] = filtered_df["TRAFFIC_LIGHT"].replace({
 })
 
 if "selected_traffic" not in st.session_state:
-    st.session_state.selected_traffic = None
+    st.session_state.selected_traffic = "Semua"
 
 chart_filtered_df = get_chart_source_df(filtered_df)
 
