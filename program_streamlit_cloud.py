@@ -170,7 +170,7 @@ QUARTER_CONFIG = {
     },
     "Suku Kedua": {
         "code": "Q2",
-        "title": "PENCAPAIAN PRESTASI FIZIKAL PROGRAM CIDB SUKU KEDUA 2026",
+        "title": "LAPORAN PRESTASI PROGRAM CIDB SEHINGGA SUKU KEDUA 2026",
         "sheet_options": [
             "DATA DASHBOARD Q2 CLEAN",
             " DATA DASHBOARD Q2 CLEAN"
