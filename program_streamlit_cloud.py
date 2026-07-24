@@ -205,6 +205,10 @@ PENCAPAIAN_FIZIKAL_COL_INDEX = 8
 # Column K = STATUS KHAS / MAKLUMAT BERMULA Q2, Q3, Q4
 STATUS_TEXT_COL_INDEX = 10
 
+# Column AD / kolum CATATAN (JUSTIFIKASI) Q2 digunakan untuk mengesan
+# status khas BERMULA Q3 dan BERMULA Q4.
+Q2_JUSTIFIKASI_COL_INDEX = 30
+
 
 # =====================================================
 # CSS
@@ -2113,11 +2117,17 @@ def detect_status_khas(row):
 
         return ""
 
-    # Q2: rekod yang telah bermula pada Q2 dinilai menggunakan nilai kumulatif Q2.
-    # Hanya status masa hadapan Q3/Q4 dikekalkan sebagai status khas.
-    if "BERMULA Q3" in combined_text or "MULA Q3" in combined_text:
+    # Q2: Q3 dan Q4 MESTI dirujuk pada kolum CATATAN (JUSTIFIKASI) Q2 sahaja.
+    # Jangan cari pada seluruh baris kerana teks Q3/Q4 di kolum lain boleh menyebabkan
+    # rekod tersalah klasifikasi.
+    try:
+        q2_justifikasi_text = clean_upper(row.iloc[Q2_JUSTIFIKASI_COL_INDEX])
+    except Exception:
+        q2_justifikasi_text = ""
+
+    if re.search(r"\bBERMULA\s*Q3\b|\bMULA\s*Q3\b", q2_justifikasi_text):
         return "BERMULA Q3"
-    if "BERMULA Q4" in combined_text or "MULA Q4" in combined_text:
+    if re.search(r"\bBERMULA\s*Q4\b|\bMULA\s*Q4\b", q2_justifikasi_text):
         return "BERMULA Q4"
 
     return ""
@@ -2791,16 +2801,12 @@ filtered_dinilai = filtered_df[filtered_df["STATUS_KHAS"] == ""].copy()
 # MAIN PAGE - TRAFFIC LIGHT
 # =====================================================
 # Q1 kekal menggunakan rekod yang sedang dinilai seperti logik asal.
-# Q2 pula mengira Traffic Light terus daripada Column AD (% PENCAPAIAN (100%)).
-# Nilai kosong dalam Column AD tidak dimasukkan sebagai Merah.
-# Status Q3, Q4 dan Gugur masih dipaparkan berasingan, tetapi jika Column AD
-# mempunyai nilai, rekod tersebut tetap termasuk dalam kiraan warna berdasarkan AD.
-if ACTIVE_QUARTER == "Q2":
-    traffic_source_df = filtered_df[
-        filtered_df["KPI_PENCAPAIAN_NUM"].notna()
-    ].copy()
-else:
-    traffic_source_df = filtered_dinilai.copy()
+# Q2 mengira Traffic Light terus daripada Column AD (% PENCAPAIAN (100%)),
+# tetapi Q3, Q4 dan Gugur dikeluarkan daripada warna supaya setiap program
+# hanya mempunyai SATU status.
+traffic_source_df = filtered_dinilai[
+    filtered_dinilai["KPI_PENCAPAIAN_NUM"].notna()
+].copy()
 
 df_hijau = traffic_source_df[
     traffic_source_df["KPI_PENCAPAIAN_NUM"] >= 85
