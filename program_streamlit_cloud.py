@@ -2983,38 +2983,58 @@ panel_df["PRESTASI_PANEL_NUM"] = (
     .clip(lower=0, upper=100)
 )
 
-# Kiraan panel mengikut suku dipilih:
-# - Column L = nilai sasaran sebenar setiap program.
-# - Column M = nilai pencapaian/prestasi sebenar setiap program.
-# - Sasaran panel ialah 25% untuk Q1 dan 50% untuk Q2.
-# - Prestasi panel = jumlah Column M / jumlah Column L x 25.
-# - Pencapaian panel = Prestasi / Sasaran x 100.
-# - Hanya rekod yang ada nilai Column L dan Column M dikira.
-panel_valid = panel_df[
-    panel_df["WEIGHTAGE_L_NUM"].notna()
-    & (panel_df["WEIGHTAGE_L_NUM"] > 0)
-    & panel_df["PENCAPAIAN_M_NUM"].notna()
-].copy()
+# Kiraan panel mengikut suku dipilih.
+# Q1 kekal menggunakan formula asal jumlah pencapaian / jumlah sasaran.
+# Q2 mesti sama dengan % PENCAPAIAN dalam Summary:
+#   - ambil terus Column AD (% PENCAPAIAN (100%));
+#   - hanya program aktif/status biasa dimasukkan;
+#   - Q3, Q4 dan Gugur tidak dimasukkan;
+#   - PRESTASI = % PENCAPAIAN x sasaran suku (50%).
+if ACTIVE_QUARTER == "Q2":
+    panel_valid = panel_df[
+        (panel_df["STATUS_KHAS"] == "")
+        & panel_df["KPI_PENCAPAIAN_NUM"].notna()
+    ].copy()
 
-if not panel_valid.empty:
     sasaran_panel = ACTIVE_SASARAN_PANEL
 
-    jumlah_l = panel_valid["WEIGHTAGE_L_NUM"].sum()
-    jumlah_m = panel_valid["PENCAPAIAN_M_NUM"].sum()
-
-    if jumlah_l > 0:
-        prestasi_panel = (jumlah_m / jumlah_l) * sasaran_panel
-        prestasi_panel = min(prestasi_panel, sasaran_panel)
-        pencapaian_panel = (prestasi_panel / sasaran_panel) * 100
+    if not panel_valid.empty:
+        pencapaian_panel = float(
+            panel_valid["KPI_PENCAPAIAN_NUM"].mean()
+        )
+        prestasi_panel = (
+            pencapaian_panel / 100
+        ) * sasaran_panel
     else:
-        prestasi_panel = 0
-        pencapaian_panel = 0
+        prestasi_panel = 0.0
+        pencapaian_panel = 0.0
 else:
-    sasaran_panel = 0
-    prestasi_panel = 0
-    pencapaian_panel = 0
+    panel_valid = panel_df[
+        panel_df["WEIGHTAGE_L_NUM"].notna()
+        & (panel_df["WEIGHTAGE_L_NUM"] > 0)
+        & panel_df["PENCAPAIAN_M_NUM"].notna()
+    ].copy()
 
-pencapaian_panel = min(pencapaian_panel, 100)
+    if not panel_valid.empty:
+        sasaran_panel = ACTIVE_SASARAN_PANEL
+
+        jumlah_l = panel_valid["WEIGHTAGE_L_NUM"].sum()
+        jumlah_m = panel_valid["PENCAPAIAN_M_NUM"].sum()
+
+        if jumlah_l > 0:
+            prestasi_panel = (jumlah_m / jumlah_l) * sasaran_panel
+            prestasi_panel = min(prestasi_panel, sasaran_panel)
+            pencapaian_panel = (prestasi_panel / sasaran_panel) * 100
+        else:
+            prestasi_panel = 0.0
+            pencapaian_panel = 0.0
+    else:
+        sasaran_panel = 0.0
+        prestasi_panel = 0.0
+        pencapaian_panel = 0.0
+
+# Elakkan paparan negatif sahaja. Nilai melebihi 100 dikekalkan jika memang ada dalam data.
+pencapaian_panel = max(pencapaian_panel, 0.0)
 
 # Kategori ringkas untuk stacked bar chart
 filtered_df["KATEGORI_TRAFFIC"] = filtered_df["TRAFFIC_LIGHT"].replace({
