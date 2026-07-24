@@ -3204,7 +3204,7 @@ if st.session_state.focus_page in FOCUS_PAGES:
                 st.rerun()
             st.markdown(
                 f"""
-                    <div class="summary-label">Jumlah Program</div>
+                    <div class="summary-label">Jumlah Program Aktif</div>
                     <div class="summary-line"></div>
                     <div class="summary-row">SASARAN <span>{sasaran_panel:.2f}%</span></div>
                     <div class="summary-row">PRESTASI <span>{prestasi_panel:.2f}%</span></div>
