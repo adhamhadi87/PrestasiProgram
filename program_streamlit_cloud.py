@@ -205,10 +205,12 @@ PENCAPAIAN_FIZIKAL_COL_INDEX = 8
 # Column K = STATUS KHAS / MAKLUMAT BERMULA Q2, Q3, Q4
 STATUS_TEXT_COL_INDEX = 10
 
-# Column AD / kolum CATATAN (JUSTIFIKASI) Q2 digunakan untuk mengesan
-# status khas BERMULA Q3 dan BERMULA Q4.
+# Kolum CATATAN (JUSTIFIKASI) mengikut suku tahun.
+# Q2 juga digunakan untuk mengesan status khas BERMULA Q3 dan BERMULA Q4.
 Q2_JUSTIFIKASI_COL_INDEX = 30
+Q1_JUSTIFIKASI_COL = None
 Q2_JUSTIFIKASI_COL = None
+JUSTIFIKASI_COL = None
 
 
 # =====================================================
@@ -2208,8 +2210,8 @@ def render_selected_list(df_list, sektor_col, bahagian_col, program_col, pencapa
         st.warning("Tiada rekod untuk kategori ini.")
         return
 
-    # Papar kolum utama sahaja sehingga TRAFFIC_LIGHT.
-    # Kolum tambahan selepas TRAFFIC_LIGHT tidak akan dipaparkan.
+    # Papar kolum utama termasuk CATATAN (JUSTIFIKASI).
+    # Teks catatan dipaparkan dengan wrap dan tinggi maksimum kira-kira 4 baris.
     display_cols = [
         sektor_col,
         bahagian_col,
@@ -2218,7 +2220,8 @@ def render_selected_list(df_list, sektor_col, bahagian_col, program_col, pencapa
         weightage_col,
         pencapaian_col,
         "KPI_PENCAPAIAN_NUM",
-        "TRAFFIC_LIGHT"
+        "TRAFFIC_LIGHT",
+        JUSTIFIKASI_COL
     ]
 
     display_cols = [
@@ -2228,15 +2231,35 @@ def render_selected_list(df_list, sektor_col, bahagian_col, program_col, pencapa
 
     display_df = df_list[display_cols].copy()
 
-    if "KPI_PENCAPAIAN_NUM" in display_df.columns:
-        display_df = display_df.rename(
-            columns={"KPI_PENCAPAIAN_NUM": "PENCAPAIAN KPI (%)"}
+    rename_map = {"KPI_PENCAPAIAN_NUM": "PENCAPAIAN KPI (%)"}
+    if JUSTIFIKASI_COL is not None and JUSTIFIKASI_COL in display_df.columns:
+        rename_map[JUSTIFIKASI_COL] = "CATATAN (JUSTIFIKASI)"
+
+    display_df = display_df.rename(columns=rename_map)
+
+    # Bersihkan nilai kosong supaya tidak memaparkan teks <NA> / nan.
+    if "CATATAN (JUSTIFIKASI)" in display_df.columns:
+        display_df["CATATAN (JUSTIFIKASI)"] = (
+            display_df["CATATAN (JUSTIFIKASI)"]
+            .fillna("")
+            .astype(str)
+            .replace({"nan": "", "<NA>": "", "None": ""})
+        )
+
+    column_config = {}
+    if "CATATAN (JUSTIFIKASI)" in display_df.columns:
+        column_config["CATATAN (JUSTIFIKASI)"] = st.column_config.TextColumn(
+            "CATATAN (JUSTIFIKASI)",
+            width="large",
+            help="Catatan akan dibalut (wrap) sehingga kira-kira 4 baris. Teks penuh boleh dilihat dengan klik pada sel."
         )
 
     st.dataframe(
         display_df.style.apply(highlight_traffic_light, axis=1),
         use_container_width=True,
-        hide_index=True
+        hide_index=True,
+        column_config=column_config,
+        row_height=86
     )
 
     csv = display_df.to_csv(index=False).encode("utf-8-sig")
@@ -2587,6 +2610,12 @@ if ACTIVE_QUARTER == "Q1":
     ])
     pencapaian_col = find_col_exact(df, ["PERATUS PENCAPAIAN Q1"])
     pencapaian_fizikal_col = find_col_exact(df, ["DATA DARI BAHAGIAN"])
+    Q1_JUSTIFIKASI_COL = find_col_exact(df, [
+        "CATATAN (JUSTIFIKASI)",
+        "CATATAN JUSTIFIKASI",
+        "JUSTIFIKASI"
+    ])
+    JUSTIFIKASI_COL = Q1_JUSTIFIKASI_COL
 
     # Fallback kepada kedudukan asal Q1 jika nama kolum berubah sedikit.
     if weightage_col is None and len(df.columns) > WEIGHTAGE_COL_INDEX:
@@ -2620,6 +2649,18 @@ else:
         "CATATAN (JUSTIFIKASI) Q2",
         "JUSTIFIKASI Q2"
     ])
+
+    # Jika pandas menamakan kolum berulang sebagai .1, pilihan ini memastikan
+    # CATATAN Q2 (kolum kedua) digunakan dalam laporan Suku Kedua.
+    if Q2_JUSTIFIKASI_COL is None:
+        catatan_candidates = [
+            col for col in df.columns
+            if "CATATAN" in clean_upper(col) and "JUSTIFIKASI" in clean_upper(col)
+        ]
+        if catatan_candidates:
+            Q2_JUSTIFIKASI_COL = catatan_candidates[-1]
+
+    JUSTIFIKASI_COL = Q2_JUSTIFIKASI_COL
 
 if weightage_col is None or pencapaian_col is None:
     st.error(
