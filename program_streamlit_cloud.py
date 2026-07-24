@@ -2252,7 +2252,7 @@ def render_selected_list(df_list, sektor_col, bahagian_col, program_col, pencapa
 
 
 def build_summary_program_bahagian(source_df, bahagian_col):
-    """Bina ringkasan bilangan program mengikut bahagian dan status."""
+    """Bina ringkasan bilangan program dan % pencapaian mengikut bahagian."""
     if source_df.empty:
         return pd.DataFrame()
 
@@ -2264,29 +2264,68 @@ def build_summary_program_bahagian(source_df, bahagian_col):
         .reset_index()
     )
 
-    status_columns = ["Hijau", "Kuning", "Merah"]
-    if ACTIVE_QUARTER == "Q1":
-        status_columns.append("Q2")
-    status_columns.extend(["Q3", "Q4", "Gugur"])
+    # Kolum Q2 dibuang daripada summary dan digantikan dengan % PENCAPAIAN.
+    status_columns = ["Hijau", "Kuning", "Merah", "Q3", "Q4", "Gugur"]
 
     for col in status_columns:
         if col not in summary.columns:
             summary[col] = 0
 
     summary = summary[[bahagian_col] + status_columns].copy()
-    summary = summary.rename(columns={bahagian_col: "BAHAGIAN"})
 
+    # % Pencapaian setiap bahagian menggunakan kaedah panel:
+    # jumlah pencapaian / jumlah sasaran x 100.
+    valid_pencapaian = source_df[
+        source_df["WEIGHTAGE_L_NUM"].notna()
+        & (source_df["WEIGHTAGE_L_NUM"] > 0)
+        & source_df["PENCAPAIAN_M_NUM"].notna()
+    ].copy()
+
+    if not valid_pencapaian.empty:
+        pencapaian_bahagian = (
+            valid_pencapaian
+            .groupby(bahagian_col, dropna=False)
+            .agg(
+                JUMLAH_SASARAN=("WEIGHTAGE_L_NUM", "sum"),
+                JUMLAH_PRESTASI=("PENCAPAIAN_M_NUM", "sum")
+            )
+            .reset_index()
+        )
+        pencapaian_bahagian["% PENCAPAIAN"] = (
+            pencapaian_bahagian["JUMLAH_PRESTASI"]
+            / pencapaian_bahagian["JUMLAH_SASARAN"]
+            * 100
+        ).clip(lower=0, upper=100)
+        summary = summary.merge(
+            pencapaian_bahagian[[bahagian_col, "% PENCAPAIAN"]],
+            on=bahagian_col,
+            how="left"
+        )
+    else:
+        summary["% PENCAPAIAN"] = 0.0
+
+    summary["% PENCAPAIAN"] = summary["% PENCAPAIAN"].fillna(0.0)
+    summary = summary.rename(columns={bahagian_col: "BAHAGIAN"})
     summary["JUMLAH"] = summary[status_columns].sum(axis=1)
+
+    total_valid = valid_pencapaian
+    if not total_valid.empty and total_valid["WEIGHTAGE_L_NUM"].sum() > 0:
+        total_pencapaian = min(
+            (total_valid["PENCAPAIAN_M_NUM"].sum() / total_valid["WEIGHTAGE_L_NUM"].sum()) * 100,
+            100.0
+        )
+    else:
+        total_pencapaian = 0.0
 
     total_row = {
         "BAHAGIAN": "JUMLAH KESELURUHAN",
         "Hijau": int(summary["Hijau"].sum()),
         "Kuning": int(summary["Kuning"].sum()),
         "Merah": int(summary["Merah"].sum()),
-        "Q2": int(summary["Q2"].sum()) if "Q2" in summary.columns else 0,
         "Q3": int(summary["Q3"].sum()),
         "Q4": int(summary["Q4"].sum()),
         "Gugur": int(summary["Gugur"].sum()),
+        "% PENCAPAIAN": float(total_pencapaian),
         "JUMLAH": int(summary["JUMLAH"].sum()),
     }
 
@@ -2439,6 +2478,7 @@ def get_chart_source_df(filtered_df):
 quarter_tab = st.radio(
     "Pilih Suku Tahun",
     options=["Suku Pertama", "Suku Kedua"],
+    index=1,
     horizontal=True,
     label_visibility="collapsed",
     key="quarter_tab_selector"
@@ -3165,17 +3205,25 @@ if st.session_state.focus_page in FOCUS_PAGES:
             else:
                 summary_display_focus = summary_df_focus.rename(columns={
                     "Hijau": "🟢 HIJAU", "Kuning": "🟡 KUNING", "Merah": "🔴 MERAH",
-                    "Q2": "Q2", "Q3": "Q3", "Q4": "Q4", "Gugur": "GUGUR",
+                    "Q3": "Q3", "Q4": "Q4", "Gugur": "GUGUR",
+                    "% PENCAPAIAN": "% PENCAPAIAN",
                     "JUMLAH": "JUMLAH PROGRAM"
                 })
-                numeric_cols_focus = ["🟢 HIJAU", "🟡 KUNING", "🔴 MERAH", "Q2", "Q3", "Q4", "GUGUR", "JUMLAH PROGRAM"]
-                for col in numeric_cols_focus:
+                integer_cols_focus = ["🟢 HIJAU", "🟡 KUNING", "🔴 MERAH", "Q3", "Q4", "GUGUR", "JUMLAH PROGRAM"]
+                for col in integer_cols_focus:
                     if col in summary_display_focus.columns:
                         summary_display_focus[col] = pd.to_numeric(summary_display_focus[col], errors="coerce").fillna(0).astype(int)
+                if "% PENCAPAIAN" in summary_display_focus.columns:
+                    summary_display_focus["% PENCAPAIAN"] = pd.to_numeric(
+                        summary_display_focus["% PENCAPAIAN"], errors="coerce"
+                    ).fillna(0.0)
+                focus_format = {
+                    col: "{:,.0f}" for col in integer_cols_focus if col in summary_display_focus.columns
+                }
+                if "% PENCAPAIAN" in summary_display_focus.columns:
+                    focus_format["% PENCAPAIAN"] = "{:.2f}%"
                 st.dataframe(
-                    summary_display_focus.style.apply(highlight_summary_table, axis=1).format({
-                        col: "{:,.0f}" for col in numeric_cols_focus if col in summary_display_focus.columns
-                    }),
+                    summary_display_focus.style.apply(highlight_summary_table, axis=1).format(focus_format),
                     use_container_width=True,
                     hide_index=True,
                     height=min(720, 80 + (len(summary_display_focus) * 35))
@@ -3491,25 +3539,24 @@ with tab_summary:
             "Hijau": "🟢 HIJAU",
             "Kuning": "🟡 KUNING",
             "Merah": "🔴 MERAH",
-            "Q2": "Q2",
             "Q3": "Q3",
             "Q4": "Q4",
             "Gugur": "GUGUR",
+            "% PENCAPAIAN": "% PENCAPAIAN",
             "JUMLAH": "JUMLAH PROGRAM"
         })
 
-        numeric_cols = [
+        integer_cols = [
             "🟢 HIJAU",
             "🟡 KUNING",
             "🔴 MERAH",
-            "Q2",
             "Q3",
             "Q4",
             "GUGUR",
             "JUMLAH PROGRAM"
         ]
 
-        for col in numeric_cols:
+        for col in integer_cols:
             if col in summary_display.columns:
                 summary_display[col] = (
                     pd.to_numeric(summary_display[col], errors="coerce")
@@ -3517,15 +3564,24 @@ with tab_summary:
                     .astype(int)
                 )
 
+        if "% PENCAPAIAN" in summary_display.columns:
+            summary_display["% PENCAPAIAN"] = pd.to_numeric(
+                summary_display["% PENCAPAIAN"], errors="coerce"
+            ).fillna(0.0)
+
+        summary_format = {
+            col: "{:,.0f}"
+            for col in integer_cols
+            if col in summary_display.columns
+        }
+        if "% PENCAPAIAN" in summary_display.columns:
+            summary_format["% PENCAPAIAN"] = "{:.2f}%"
+
         st.dataframe(
             summary_display.style.apply(
                 highlight_summary_table,
                 axis=1
-            ).format({
-                col: "{:,.0f}"
-                for col in numeric_cols
-                if col in summary_display.columns
-            }),
+            ).format(summary_format),
             use_container_width=True,
             hide_index=True,
             height=min(720, 80 + (len(summary_display) * 35))
