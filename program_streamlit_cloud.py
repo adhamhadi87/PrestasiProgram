@@ -208,6 +208,7 @@ STATUS_TEXT_COL_INDEX = 10
 # Column AD / kolum CATATAN (JUSTIFIKASI) Q2 digunakan untuk mengesan
 # status khas BERMULA Q3 dan BERMULA Q4.
 Q2_JUSTIFIKASI_COL_INDEX = 30
+Q2_JUSTIFIKASI_COL = None
 
 
 # =====================================================
@@ -2121,7 +2122,9 @@ def detect_status_khas(row):
     # Jangan cari pada seluruh baris kerana teks Q3/Q4 di kolum lain boleh menyebabkan
     # rekod tersalah klasifikasi.
     try:
-        q2_justifikasi_text = clean_upper(row.iloc[Q2_JUSTIFIKASI_COL_INDEX])
+        # Guna nama kolum sebenar, bukan nombor index.
+        # Index berubah apabila kolum kosong dibuang oleh load_data().
+        q2_justifikasi_text = clean_upper(row.get(Q2_JUSTIFIKASI_COL, ""))
     except Exception:
         q2_justifikasi_text = ""
 
@@ -2544,6 +2547,14 @@ else:
         "% PENCAPAIAN 100%"
     ])
 
+    # Kolum justifikasi khusus Q2. Selepas kolum kosong dibuang, kedudukan
+    # index tidak lagi semestinya 30. Oleh itu, rujuk nama kolum sebenar.
+    Q2_JUSTIFIKASI_COL = find_col_exact(df, [
+        "CATATAN (JUSTIFIKASI).1",
+        "CATATAN (JUSTIFIKASI) Q2",
+        "JUSTIFIKASI Q2"
+    ])
+
 if weightage_col is None or pencapaian_col is None:
     st.error(
         f"Kolum sasaran atau pencapaian untuk {quarter_tab} tidak dijumpai dalam "
@@ -2557,6 +2568,15 @@ if ACTIVE_QUARTER == "Q2" and q2_kpi_col is None:
     st.error(
         "Kolum **% PENCAPAIAN (100%)** untuk Traffic Light Suku Kedua "
         "tidak dijumpai dalam sheet DATA DASHBOARD Q2 CLEAN."
+    )
+    st.write("Kolum yang dibaca:")
+    st.write(list(df.columns))
+    st.stop()
+
+if ACTIVE_QUARTER == "Q2" and Q2_JUSTIFIKASI_COL is None:
+    st.error(
+        "Kolum **CATATAN (JUSTIFIKASI) Q2** tidak dijumpai. "
+        "Kolum ini diperlukan untuk menentukan program Bermula Q3 dan Bermula Q4."
     )
     st.write("Kolum yang dibaca:")
     st.write(list(df.columns))
