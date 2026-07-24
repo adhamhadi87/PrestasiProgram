@@ -2273,49 +2273,76 @@ def build_summary_program_bahagian(source_df, bahagian_col):
 
     summary = summary[[bahagian_col] + status_columns].copy()
 
-    # % Pencapaian setiap bahagian menggunakan kaedah panel:
-    # jumlah pencapaian / jumlah sasaran x 100.
-    valid_pencapaian = source_df[
-        source_df["WEIGHTAGE_L_NUM"].notna()
-        & (source_df["WEIGHTAGE_L_NUM"] > 0)
-        & source_df["PENCAPAIAN_M_NUM"].notna()
-    ].copy()
+    # Suku Kedua: % PENCAPAIAN mesti merujuk terus kepada Column AD
+    # iaitu KPI_PENCAPAIAN_NUM, bukan jumlah Pencapaian / jumlah Sasaran.
+    # Kaedah lama menyebabkan nilai melebihi 100% lalu semuanya diclip kepada 100%.
+    if ACTIVE_QUARTER == "Q2":
+        valid_pencapaian = source_df[
+            (source_df["STATUS_KHAS"] == "")
+            & source_df["KPI_PENCAPAIAN_NUM"].notna()
+        ].copy()
 
-    if not valid_pencapaian.empty:
-        pencapaian_bahagian = (
-            valid_pencapaian
-            .groupby(bahagian_col, dropna=False)
-            .agg(
-                JUMLAH_SASARAN=("WEIGHTAGE_L_NUM", "sum"),
-                JUMLAH_PRESTASI=("PENCAPAIAN_M_NUM", "sum")
+        if not valid_pencapaian.empty:
+            pencapaian_bahagian = (
+                valid_pencapaian
+                .groupby(bahagian_col, dropna=False)["KPI_PENCAPAIAN_NUM"]
+                .mean()
+                .reset_index(name="% PENCAPAIAN")
             )
-            .reset_index()
-        )
-        pencapaian_bahagian["% PENCAPAIAN"] = (
-            pencapaian_bahagian["JUMLAH_PRESTASI"]
-            / pencapaian_bahagian["JUMLAH_SASARAN"]
-            * 100
-        ).clip(lower=0, upper=100)
-        summary = summary.merge(
-            pencapaian_bahagian[[bahagian_col, "% PENCAPAIAN"]],
-            on=bahagian_col,
-            how="left"
-        )
+            summary = summary.merge(
+                pencapaian_bahagian,
+                on=bahagian_col,
+                how="left"
+            )
+            total_pencapaian = float(
+                valid_pencapaian["KPI_PENCAPAIAN_NUM"].mean()
+            )
+        else:
+            summary["% PENCAPAIAN"] = 0.0
+            total_pencapaian = 0.0
     else:
-        summary["% PENCAPAIAN"] = 0.0
+        valid_pencapaian = source_df[
+            source_df["WEIGHTAGE_L_NUM"].notna()
+            & (source_df["WEIGHTAGE_L_NUM"] > 0)
+            & source_df["PENCAPAIAN_M_NUM"].notna()
+        ].copy()
 
-    summary["% PENCAPAIAN"] = summary["% PENCAPAIAN"].fillna(0.0)
+        if not valid_pencapaian.empty:
+            pencapaian_bahagian = (
+                valid_pencapaian
+                .groupby(bahagian_col, dropna=False)
+                .agg(
+                    JUMLAH_SASARAN=("WEIGHTAGE_L_NUM", "sum"),
+                    JUMLAH_PRESTASI=("PENCAPAIAN_M_NUM", "sum")
+                )
+                .reset_index()
+            )
+            pencapaian_bahagian["% PENCAPAIAN"] = (
+                pencapaian_bahagian["JUMLAH_PRESTASI"]
+                / pencapaian_bahagian["JUMLAH_SASARAN"]
+                * 100
+            )
+            summary = summary.merge(
+                pencapaian_bahagian[[bahagian_col, "% PENCAPAIAN"]],
+                on=bahagian_col,
+                how="left"
+            )
+            total_pencapaian = float(
+                valid_pencapaian["PENCAPAIAN_M_NUM"].sum()
+                / valid_pencapaian["WEIGHTAGE_L_NUM"].sum()
+                * 100
+            )
+        else:
+            summary["% PENCAPAIAN"] = 0.0
+            total_pencapaian = 0.0
+
+    summary["% PENCAPAIAN"] = (
+        pd.to_numeric(summary["% PENCAPAIAN"], errors="coerce")
+        .fillna(0.0)
+    )
+
     summary = summary.rename(columns={bahagian_col: "BAHAGIAN"})
     summary["JUMLAH"] = summary[status_columns].sum(axis=1)
-
-    total_valid = valid_pencapaian
-    if not total_valid.empty and total_valid["WEIGHTAGE_L_NUM"].sum() > 0:
-        total_pencapaian = min(
-            (total_valid["PENCAPAIAN_M_NUM"].sum() / total_valid["WEIGHTAGE_L_NUM"].sum()) * 100,
-            100.0
-        )
-    else:
-        total_pencapaian = 0.0
 
     total_row = {
         "BAHAGIAN": "JUMLAH KESELURUHAN",
@@ -2340,7 +2367,6 @@ def build_summary_program_bahagian(source_df, bahagian_col):
     )
 
     return summary
-
 
 def highlight_summary_table(row):
     """Warnakan baris jumlah keseluruhan dalam jadual ringkasan."""
