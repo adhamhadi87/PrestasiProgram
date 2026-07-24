@@ -3204,7 +3204,7 @@ if st.session_state.focus_page in FOCUS_PAGES:
                 st.rerun()
             st.markdown(
                 f"""
-                    <div class="summary-label">Jumlah Program</div>
+                    <div class="summary-label">Jumlah Program Aktif</div>
                     <div class="summary-line"></div>
                     <div class="summary-row">SASARAN <span>{sasaran_panel:.2f}%</span></div>
                     <div class="summary-row">PRESTASI <span>{prestasi_panel:.2f}%</span></div>
@@ -3240,7 +3240,7 @@ if st.session_state.focus_page in FOCUS_PAGES:
             elif selected == "Gugur":
                 render_selected_list(df_tidak_filtered, sektor_col, bahagian_col, program_col, pencapaian_col, "Gugur")
             else:
-                st.info("Klik Jumlah Program, bulatan Traffic Light, atau nilai Q2/Q3/Q4/Gugur untuk lihat senarai.")
+                st.info("Klik Jumlah Program Aktif, bulatan Traffic Light, atau nilai Q2/Q3/Q4/Gugur untuk lihat senarai.")
 
         with tab_summary_focus:
             st.markdown("### SUMMARY PROGRAM MENGIKUT BAHAGIAN")
@@ -3406,7 +3406,7 @@ with main_right:
 
     st.markdown(
         f"""
-            <div class="summary-label">Jumlah Program</div>
+            <div class="summary-label">Jumlah Program Aktif</div>
             <div class="summary-line"></div>
             <div class="summary-row">SASARAN <span>{sasaran_panel:.2f}%</span></div>
             <div class="summary-row">PRESTASI <span>{prestasi_panel:.2f}%</span></div>
@@ -3563,7 +3563,7 @@ with tab_senarai:
 
     else:
         st.info(
-            "Klik Jumlah Program, bulatan Traffic Light, atau nilai "
+            "Klik Jumlah Program Aktif, bulatan Traffic Light, atau nilai "
             "Q2/Q3/Q4/Gugur untuk lihat senarai."
         )
 
